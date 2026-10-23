@@ -53,10 +53,14 @@ wait_for_endpoint(vsc, VS_ENDPOINT)  # pode levar ~10-15 min na primeira vez
 # COMMAND ----------
 
 from databricks.sdk import WorkspaceClient
+from src import checks
 
 w = WorkspaceClient()
 available = {e.name for e in w.serving_endpoints.list()}
-for name in [EMBEDDING_ENDPOINT, LLM_ENDPOINT]:
-    print(("OK      " if name in available else "FALTANDO"), name)
+print("Endpoints de embedding disponíveis:", sorted(n for n in available if "embed" in n or "gte" in n or "bge" in n))
 
-print("\nEndpoints disponíveis com 'embed' no nome:", sorted(n for n in available if "embed" in n or "gte" in n or "bge" in n))
+rep = checks.Report("01 · Setup")
+for label, name in [("Modelo de embedding", EMBEDDING_ENDPOINT), ("LLM", LLM_ENDPOINT)]:
+    found = name in available
+    rep.add(label, checks.Result(found, name if found else f"'{name}' não existe no workspace; troque no 00_config (veja Serving > Endpoints)"))
+rep.finish()

@@ -1,6 +1,6 @@
 import pytest
 
-from src.chunking import chunk_pages, clean_page, split_paragraphs
+from src.chunking import chunk_pages, clean_page, find_headings, split_paragraphs
 from src.retrieval import hit_at_k, reciprocal_rank, parse_search_result
 
 
@@ -53,6 +53,40 @@ def test_unique_ids():
 def test_overlap_must_be_smaller():
     with pytest.raises(ValueError):
         chunk_pages(_pages(), chunk_size_words=10, overlap_words=10)
+
+
+def test_heading_glued_to_text_is_detected():
+    # pypdf costuma extrair sem linha em branco entre o título e o texto
+    body = "\n".join(f"linha {i} do texto" for i in range(30))
+    pages = [(1, f"Capítulo 1\n{body}"), (2, f"Capítulo 2\n{body}")]
+    chunks = chunk_pages(pages, chunk_size_words=80, overlap_words=10, chapter_regex=r"^Capítulo \d+")
+    assert {c.chapter for c in chunks} == {"Capítulo 1", "Capítulo 2"}
+    assert find_headings(pages, r"^Capítulo \d+") == [
+        {"page": 1, "title": "Capítulo 1", "repeat": False},
+        {"page": 2, "title": "Capítulo 2", "repeat": False},
+    ]
+
+
+def test_running_header_with_chapter_name_is_ignored():
+    body = " ".join(f"w{i}" for i in range(50))
+    pages = [(1, f"Capítulo 1\n\n{body}"), (2, f"CAPÍTULO 1\n{body}")]
+    chunks = chunk_pages(pages, chunk_size_words=500, overlap_words=10, chapter_regex=r"(?i)^capítulo \d+")
+    assert len(chunks) == 1  # o cabeçalho da página 2 não corta o capítulo
+    assert chunks[0].n_words == 100
+    assert [h["repeat"] for h in find_headings(pages, r"(?i)^capítulo \d+")] == [False, True]
+
+
+def test_no_overlap_only_chunk_at_chapter_end():
+    # capítulo termina exatamente no limite do chunk: o buffer só com overlap não vira chunk
+    body = " ".join(f"w{i}" for i in range(80))
+    pages = [(1, f"Capítulo 1\n\n{body}\n\nCapítulo 2\n\n{body}")]
+    chunks = chunk_pages(pages, chunk_size_words=80, overlap_words=10, chapter_regex=r"^Capítulo \d+")
+    assert [(c.chapter, c.n_words) for c in chunks] == [("Capítulo 1", 80), ("Capítulo 2", 80)]
+
+
+def test_clean_page_normalizes_accents():
+    decomposed = "Fëanor"
+    assert clean_page(decomposed) == "Fëanor"
 
 
 def test_retrieval_metrics():

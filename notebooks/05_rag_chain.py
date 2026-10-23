@@ -33,8 +33,14 @@ perguntas = [
     "Qual é a relação entre Lúthien e Elrond?",
     "Qual é a data de aniversário de Bilbo?",  # não está no livro: deve recusar
 ]
+from src import checks
+
+rep = checks.Report("05 · Cadeia RAG")
 for p in perguntas:
-    print(f"Q: {p}\nA: {rag.answer(p)}\n")
+    ans = rag.answer(p)
+    print(f"Q: {p}\nA: {ans}\n")
+    rep.add(f"Citações · {p}", checks.citations(ans, [d.id for d in rag.last_docs], REFUSAL_TEXT), level="AVISO")
+rep.finish()
 
 # COMMAND ----------
 

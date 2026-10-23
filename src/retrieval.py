@@ -24,6 +24,21 @@ def wait_for_endpoint(vsc, name: str, timeout_s: int = 1800) -> None:
         time.sleep(20)
 
 
+def wait_until(condition, timeout_s: int = 900, interval_s: int = 20, what: str = "condição") -> bool:
+    """Chama `condition()` até ela ser verdadeira ou o tempo acabar. Devolve se conseguiu."""
+    start = time.time()
+    while not condition():
+        if time.time() - start > timeout_s:
+            return False
+        print(f"Aguardando {what}...")
+        time.sleep(interval_s)
+    return True
+
+
+def indexed_row_count(index) -> int | None:
+    return index.describe().get("status", {}).get("indexed_row_count")
+
+
 def parse_search_result(result: dict) -> list[dict]:
     """Converte a resposta do similarity_search em lista de dicts (inclui 'score')."""
     cols = [c["name"] for c in result["manifest"]["columns"]]

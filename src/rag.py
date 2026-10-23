@@ -20,6 +20,7 @@ class RAGMarillion:
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.client = get_deploy_client("databricks")
+        self.last_docs: list[Document] = []  # chunks usados na última chamada de answer()
 
     @mlflow.trace(span_type=SpanType.RETRIEVER)
     def retrieve(self, question: str) -> list[Document]:
@@ -54,5 +55,5 @@ class RAGMarillion:
 
     @mlflow.trace(span_type=SpanType.CHAIN)
     def answer(self, question: str) -> str:
-        docs = self.retrieve(question)
-        return self.generate(question, docs)
+        self.last_docs = self.retrieve(question)
+        return self.generate(question, self.last_docs)
