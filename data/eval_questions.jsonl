@@ -1,0 +1,11 @@
+{"id": "q01", "category": "factual", "question": "Quem forjou as Silmarils?", "expected_response": "Fëanor, filho de Finwë.", "expected_terms": ["Fëanor"]}
+{"id": "q02", "category": "factual", "question": "Quem destruiu as Duas Árvores de Valinor?", "expected_response": "Melkor (Morgoth), com a ajuda de Ungoliant.", "expected_terms": ["Ungoliant"]}
+{"id": "q03", "category": "factual", "question": "Qual era a cidade escondida governada por Turgon?", "expected_response": "Gondolin.", "expected_terms": ["Gondolin"]}
+{"id": "q04", "category": "aliases", "question": "Que outros nomes Túrin usou ao longo da vida?", "expected_response": "Entre outros: Neithan, Agarwaen, Mormegil e Turambar.", "expected_terms": ["Turambar", "Mormegil", "Neithan"]}
+{"id": "q05", "category": "aliases", "question": "Quem era chamado de Mormegil, a Espada Negra?", "expected_response": "Túrin, filho de Húrin.", "expected_terms": ["Mormegil"]}
+{"id": "q06", "category": "similar_names", "question": "Qual rei dos Noldor morreu na Nirnaeth Arnoediad?", "expected_response": "Fingon, morto por Gothmog.", "expected_terms": ["Fingon"]}
+{"id": "q07", "category": "similar_names", "question": "Quem era o filho de Eöl e Aredhel?", "expected_response": "Maeglin.", "expected_terms": ["Maeglin"]}
+{"id": "q08", "category": "multi_hop", "question": "Qual é o parentesco entre Lúthien e Elrond?", "expected_response": "Lúthien é bisavó de Elrond: Lúthien → Dior → Elwing → Elrond.", "expected_terms": ["Elwing", "Dior"]}
+{"id": "q09", "category": "multi_hop", "question": "De onde veio a Silmaril que Eärendil levou ao navegar até Valinor?", "expected_response": "Da Silmaril que Beren e Lúthien tiraram da coroa de Morgoth, herdada por Dior e depois por Elwing.", "expected_terms": ["Elwing", "Silmaril"]}
+{"id": "q10", "category": "unanswerable", "question": "Qual é a data de aniversário de Bilbo Bolseiro?", "expected_response": "A informação não está no Silmarillion; o sistema deve dizer que não encontrou nos trechos.", "expected_terms": []}
+{"id": "q11", "category": "unanswerable", "question": "Qual era o nome do pônei de Sam?", "expected_response": "A informação não está no Silmarillion; o sistema deve dizer que não encontrou nos trechos.", "expected_terms": []}

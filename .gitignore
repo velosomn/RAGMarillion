@@ -1,0 +1,17 @@
+# O texto do livro NUNCA vai para o repositório
+*.pdf
+*.epub
+data/raw/
+data/*.txt
+data/*.parquet
+
+# Python / ambiente
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ipynb_checkpoints/
+*.ipynb
+
+# Databricks
+.databricks/
