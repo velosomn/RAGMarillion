@@ -7,7 +7,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install -q databricks-vectorsearch
+# MAGIC %pip install -q "databricks-ai-search>=0.80,<1.0"
 # MAGIC %restart_python
 
 # COMMAND ----------
@@ -26,9 +26,9 @@ print("Schema e Volume prontos.")
 
 # COMMAND ----------
 
-from databricks.vector_search.client import VectorSearchClient
+from databricks.ai_search.client import AISearchClient
 
-vsc = VectorSearchClient(disable_notice=True)
+vsc = AISearchClient(disable_notice=True)
 existing = [e["name"] for e in vsc.list_endpoints().get("endpoints", [])]
 
 if VS_ENDPOINT in existing:

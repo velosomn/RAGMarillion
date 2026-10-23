@@ -6,7 +6,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install -q databricks-vectorsearch "mlflow[databricks]>=3.1"
+# MAGIC %pip install -q "databricks-ai-search>=0.80,<1.0" "mlflow[databricks]>=3.1"
 # MAGIC %restart_python
 
 # COMMAND ----------
@@ -18,11 +18,11 @@
 import os, sys
 sys.path.append(os.path.abspath(".."))
 import mlflow
-from databricks.vector_search.client import VectorSearchClient
+from databricks.ai_search.client import AISearchClient
 from src.rag import RAGMarillion
 
 mlflow.set_experiment(MLFLOW_EXPERIMENT)
-index = VectorSearchClient(disable_notice=True).get_index(VS_ENDPOINT, VS_INDEX)
+index = AISearchClient(disable_notice=True).get_index(VS_ENDPOINT, VS_INDEX)
 rag = RAGMarillion(index, LLM_ENDPOINT, top_k=TOP_K, query_type=QUERY_TYPE)
 
 # COMMAND ----------

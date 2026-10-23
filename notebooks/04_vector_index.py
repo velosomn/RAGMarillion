@@ -6,7 +6,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install -q databricks-vectorsearch
+# MAGIC %pip install -q "databricks-ai-search>=0.80,<1.0"
 # MAGIC %restart_python
 
 # COMMAND ----------
@@ -17,11 +17,11 @@
 
 import os, sys
 sys.path.append(os.path.abspath(".."))
-from databricks.vector_search.client import VectorSearchClient
+from databricks.ai_search.client import AISearchClient
 from src import checks
 from src.retrieval import indexed_row_count, parse_search_result, wait_until
 
-vsc = VectorSearchClient(disable_notice=True)
+vsc = AISearchClient(disable_notice=True)
 existing = [i["name"] for i in vsc.list_indexes(VS_ENDPOINT).get("vector_indexes", [])]
 
 if VS_INDEX in existing:

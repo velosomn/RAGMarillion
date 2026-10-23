@@ -13,7 +13,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install -q databricks-vectorsearch "mlflow[databricks]>=3.1"
+# MAGIC %pip install -q "databricks-ai-search>=0.80,<1.0" "mlflow[databricks]>=3.1"
 # MAGIC %restart_python
 
 # COMMAND ----------
@@ -26,14 +26,14 @@ import os, sys, json
 sys.path.append(os.path.abspath(".."))
 import mlflow
 import pandas as pd
-from databricks.vector_search.client import VectorSearchClient
+from databricks.ai_search.client import AISearchClient
 from mlflow.genai.scorers import Correctness, RetrievalGroundedness
 from src import checks
 from src.rag import RAGMarillion
 from src.retrieval import hit_at_k, reciprocal_rank
 
 mlflow.set_experiment(MLFLOW_EXPERIMENT)
-index = VectorSearchClient(disable_notice=True).get_index(VS_ENDPOINT, VS_INDEX)
+index = AISearchClient(disable_notice=True).get_index(VS_ENDPOINT, VS_INDEX)
 
 with open(os.path.abspath(EVAL_FILE), encoding="utf-8") as f:
     eval_set = [json.loads(line) for line in f if line.strip()]
