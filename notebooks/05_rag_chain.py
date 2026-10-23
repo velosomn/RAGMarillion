@@ -19,11 +19,11 @@ import os, sys
 sys.path.append(os.path.abspath(".."))
 import mlflow
 from databricks.vector_search.client import VectorSearchClient
-from src.rag import SilmarillionRAG
+from src.rag import RAGMarillion
 
 mlflow.set_experiment(MLFLOW_EXPERIMENT)
 index = VectorSearchClient(disable_notice=True).get_index(VS_ENDPOINT, VS_INDEX)
-rag = SilmarillionRAG(index, LLM_ENDPOINT, top_k=TOP_K, query_type=QUERY_TYPE)
+rag = RAGMarillion(index, LLM_ENDPOINT, top_k=TOP_K, query_type=QUERY_TYPE)
 
 # COMMAND ----------
 

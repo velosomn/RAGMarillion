@@ -3,7 +3,7 @@
 # MAGIC # 01 · Setup do ambiente
 # MAGIC Cria schema, Volume e o endpoint de Vector Search. Rode **uma vez**.
 # MAGIC
-# MAGIC Depois de rodar, suba o PDF em **Catalog > workspace > silmarillion_rag > raw > Upload to this volume**.
+# MAGIC Depois de rodar, suba o PDF em **Catalog > workspace > ragmarillion > raw > Upload to this volume**.
 
 # COMMAND ----------
 

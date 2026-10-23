@@ -10,7 +10,7 @@ from src.retrieval import build_messages, parse_search_result
 COLUMNS = ["chunk_id", "chapter", "page_start", "text"]
 
 
-class SilmarillionRAG:
+class RAGMarillion:
     def __init__(self, index, llm_endpoint: str, top_k: int = 5, query_type: str = "hybrid",
                  temperature: float = 0.0, max_tokens: int = 500):
         self.index = index

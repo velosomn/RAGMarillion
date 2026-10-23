@@ -8,7 +8,7 @@
 # MAGIC | Recuperação | hit@k, MRR (proxy por termos esperados) | O LLM já conhece o Silmarillion; uma resposta certa **não prova** que a recuperação funcionou |
 # MAGIC | Geração | Correctness, RetrievalGroundedness (juízes LLM), taxa de recusa | Mede se a resposta está correta **e** apoiada nos chunks |
 # MAGIC
-# MAGIC Cada configuração vira um run no MLflow: compare em **Experiments > silmarillion-rag**.
+# MAGIC Cada configuração vira um run no MLflow: compare em **Experiments > ragmarillion**.
 
 # COMMAND ----------
 
@@ -27,7 +27,7 @@ import mlflow
 import pandas as pd
 from databricks.vector_search.client import VectorSearchClient
 from mlflow.genai.scorers import Correctness, RetrievalGroundedness
-from src.rag import SilmarillionRAG
+from src.rag import RAGMarillion
 from src.retrieval import hit_at_k, reciprocal_rank
 
 mlflow.set_experiment(MLFLOW_EXPERIMENT)
@@ -46,7 +46,7 @@ def judges():
 
 
 def run_config(name: str, top_k: int, query_type: str) -> pd.DataFrame:
-    rag = SilmarillionRAG(index, LLM_ENDPOINT, top_k=top_k, query_type=query_type)
+    rag = RAGMarillion(index, LLM_ENDPOINT, top_k=top_k, query_type=query_type)
     rows = []
     with mlflow.start_run(run_name=name):
         mlflow.log_params({

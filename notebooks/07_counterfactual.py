@@ -22,11 +22,11 @@ import os, sys, time
 sys.path.append(os.path.abspath(".."))
 import mlflow
 from databricks.vector_search.client import VectorSearchClient
-from src.rag import SilmarillionRAG
+from src.rag import RAGMarillion
 
 mlflow.set_experiment(MLFLOW_EXPERIMENT)
 index = VectorSearchClient(disable_notice=True).get_index(VS_ENDPOINT, VS_INDEX)
-rag = SilmarillionRAG(index, LLM_ENDPOINT, top_k=TOP_K, query_type=QUERY_TYPE)
+rag = RAGMarillion(index, LLM_ENDPOINT, top_k=TOP_K, query_type=QUERY_TYPE)
 
 QUESTION = "Quem forjou as Silmarils?"
 TRUE_FACT, FAKE_FACT = "Fëanor", "Maglor"  # troque à vontade

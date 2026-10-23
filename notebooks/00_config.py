@@ -8,7 +8,7 @@
 # --- Unity Catalog -----------------------------------------------------------
 # No Free Edition o catálogo padrão se chama `workspace`.
 CATALOG = "workspace"
-SCHEMA = "silmarillion_rag"
+SCHEMA = "ragmarillion"
 VOLUME = "raw"
 
 PDF_FILENAME = "silmarillion.pdf"  # nome do arquivo que você subir no Volume
@@ -19,7 +19,7 @@ CHUNKS_TABLE = f"{CATALOG}.{SCHEMA}.chunks"
 
 # --- Vector Search -----------------------------------------------------------
 # O Free Edition permite 1 endpoint de Vector Search.
-VS_ENDPOINT = "silmarillion-vs"
+VS_ENDPOINT = "ragmarillion-vs"
 VS_INDEX = f"{CATALOG}.{SCHEMA}.chunks_index"
 
 # --- Modelos (confira os nomes em Serving > Endpoints no seu workspace) ------
@@ -49,6 +49,6 @@ REFUSAL_TEXT = "Não encontrei isso nos trechos recuperados"
 
 # --- MLflow ------------------------------------------------------------------
 CURRENT_USER = spark.sql("SELECT current_user()").first()[0]
-MLFLOW_EXPERIMENT = f"/Users/{CURRENT_USER}/silmarillion-rag"
+MLFLOW_EXPERIMENT = f"/Users/{CURRENT_USER}/ragmarillion"
 
 print(f"PDF: {PDF_PATH}\nChunks: {CHUNKS_TABLE}\nÍndice: {VS_INDEX}\nExperimento: {MLFLOW_EXPERIMENT}")

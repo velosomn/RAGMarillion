@@ -1,4 +1,4 @@
-# RAGMarilion · RAG sobre O Silmarillion no Databricks Free Edition
+# RAGMarillion · RAG sobre O Silmarillion no Databricks Free Edition
 
 Sistema de *Retrieval-Augmented Generation* sobre **O Silmarillion**, construído de ponta a ponta no
 Databricks Free Edition: ingestão de PDF → chunking por capítulo → Vector Search (híbrido) →
@@ -45,7 +45,7 @@ notebooks/
 src/
   chunking.py           # funções puras, testáveis fora do Databricks
   retrieval.py          # prompt, parsing, métricas de recuperação
-  rag.py                # classe SilmarillionRAG (MLflow traced)
+  rag.py                # classe RAGMarillion (MLflow traced)
 data/
   eval_questions.jsonl  # gabarito: factual, aliases, nomes parecidos, multi-hop, sem resposta
 tests/                  # pytest para o chunking e as métricas
@@ -65,9 +65,9 @@ tests/                  # pytest para o chunking e as métricas
 ### 2. Publicar o repositório no GitHub
 No seu computador:
 ```bash
-cd silmarillion-rag
-git init && git add . && git commit -m "Silmarillion RAG: estrutura inicial"
-gh repo create silmarillion-rag --public --source=. --push
+cd RAGMarillion
+git init && git add . && git commit -m "RAGMarillion: estrutura inicial"
+gh repo create RAGMarillion --public --source=. --push
 # ou crie o repo vazio no github.com e: git remote add origin <url> && git push -u origin main
 ```
 Confira que **nenhum PDF** entrou: `git ls-files | grep -i pdf` deve voltar vazio.
@@ -76,7 +76,7 @@ Confira que **nenhum PDF** entrou: `git ls-files | grep -i pdf` deve voltar vazi
 1. No workspace: **Workspace > Home > Create > Git folder**.
 2. Cole a URL do repo. Para dar *push* de dentro do Databricks, configure um token do GitHub em
    **Settings > Linked accounts**.
-3. Os notebooks aparecem em `silmarillion-rag/notebooks/`. Eles importam `src/` automaticamente
+3. Os notebooks aparecem em `RAGMarillion/notebooks/`. Eles importam `src/` automaticamente
    (`sys.path.append("..")`).
 
 > Se Git folder não estiver disponível, importe os arquivos manualmente
@@ -89,11 +89,11 @@ Confira que **nenhum PDF** entrou: `git ls-files | grep -i pdf` deve voltar vazi
 - O notebook `01` confere se os dois existem no seu workspace.
 
 ### 5. Rodar o setup (`01_setup`)
-Cria `workspace.silmarillion_rag`, o Volume `raw` e o endpoint `silmarillion-vs`.
+Cria `workspace.ragmarillion`, o Volume `raw` e o endpoint `ragmarillion-vs`.
 A primeira subida do endpoint leva alguns minutos.
 
 ### 6. Subir o PDF
-**Catalog > workspace > silmarillion_rag > raw > Upload to this volume**. O nome do arquivo
+**Catalog > workspace > ragmarillion > raw > Upload to this volume**. O nome do arquivo
 precisa bater com `PDF_FILENAME` no `00_config`.
 
 ### 7. Ingerir e inspecionar (`02_ingest_pdf`)
