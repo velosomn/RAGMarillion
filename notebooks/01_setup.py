@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "6"
+# ///
 # MAGIC %md
 # MAGIC # 01 · Setup do ambiente
 # MAGIC Cria schema, Volume e o endpoint de Vector Search. Rode **uma vez**.

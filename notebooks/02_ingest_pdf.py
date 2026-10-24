@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "6"
+# ///
 # MAGIC %md
 # MAGIC # 02 · Ingestão do PDF
 # MAGIC Extrai o texto página a página e grava na tabela `pages`.
