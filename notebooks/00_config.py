@@ -48,7 +48,7 @@ CHUNK_SIZE_WORDS = 350
 CHUNK_OVERLAP_WORDS = 60
 # Regex que reconhece títulos de capítulo no SEU PDF (veja o notebook 02).
 # Deixe None até inspecionar o texto.
-CHAPTER_REGEX = r"^CAP[IÍ]TULO [IVXLC]+\b"
+CHAPTER_REGEX = r"^(CAP[IÍ]TULO [IVXLC]+\b|AINULINDAL[ËE]$|VALAQUENTA$|Dos (Valar|Maiar|Inimigos)$|AKALLAB[ÊE]TH$|DOS AN[ÉE]IS DE PODER\b|GENEALOGIAS$|NOTA SOBRE A PRON[ÚU]NCIA$|GLOSS[ÁA]RIO$|AP[ÊE]NDICE$|MAPAS$)"
 PREPEND_CHAPTER = True  # injeta o título do capítulo no texto do chunk
 
 # --- Recuperação -------------------------------------------------------------
@@ -76,7 +76,7 @@ MAX_BAD_CHAR_FRAC = 0.0001      # caracteres corrompidos (�, ﬁ, 'F¨eanor')
 REPEATED_LINE_MIN_FRAC = 0.2    # linha de topo/rodapé em ≥20% das páginas = cabeçalho
 
 # 03 · Chunking
-EXPECTED_CHAPTERS = (20, 35)    # Ainulindalë, Valaquenta, 24 do Quenta, Akallabêth, Anéis...
+EXPECTED_CHAPTERS = (34, 38)   # Ainulindalë, Valaquenta, 24 do Quenta, Akallabêth, Anéis...
 MIN_CHUNKS_PER_CHAPTER = 3
 MAX_CHAPTER_SHARE = 0.4
 MIN_CHUNK_WORDS = 50
