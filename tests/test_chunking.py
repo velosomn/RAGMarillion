@@ -89,6 +89,10 @@ def test_clean_page_normalizes_accents():
     assert clean_page(decomposed) == "Fëanor"
 
 
+def test_clean_page_expands_ligatures():
+    assert clean_page("os ﬁlhos e os artíﬁces, por ﬁm ﬂores") == "os filhos e os artífices, por fim flores"
+
+
 def test_retrieval_metrics():
     hits = [{"text": "nada aqui"}, {"text": "Fëanor fez as joias"}]
     assert hit_at_k(hits, ["fëanor"])

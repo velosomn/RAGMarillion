@@ -104,7 +104,10 @@ def bad_chars(pages: list[tuple[int, str]], max_frac: float) -> Result:
     frac = len(matches) / max(len(blob), 1)
     detail = f"{len(matches)} ocorrências ({frac:.4%} dos caracteres)"
     if matches:
-        examples = [blob[max(m.start() - 15, 0):m.end() + 15].replace("\n", " ") for m in matches[:5]]
+        # mostra o código do caractere: ligaduras como "ﬁ" parecem texto normal na tela
+        kinds = Counter(next(c for c in m.group() if not c.isalnum() or ord(c) > 0xFAFF) for m in matches)
+        detail += "; tipos: " + ", ".join(f"'{c}' (U+{ord(c):04X}) ×{n}" for c, n in kinds.most_common())
+        examples = [blob[max(m.start() - 15, 0):m.end() + 15].replace("\n", " ") for m in matches[:3]]
         detail += "; exemplos: " + " | ".join(repr(e) for e in examples)
     return Result(frac <= max_frac, detail)
 

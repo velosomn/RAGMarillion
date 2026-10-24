@@ -29,14 +29,17 @@ class Chunk:
 
 _HYPHEN_BREAK = re.compile(r"(\w)-\n(\w)")
 _MULTI_SPACE = re.compile(r"[ \t]+")
+# Ligaduras tipográficas do PDF (ﬁ, ﬂ...): na tela parecem "fi", mas para a busca
+# "ﬁlhos" e "filhos" seriam palavras diferentes.
+_LIGATURES = str.maketrans({"ﬀ": "ff", "ﬁ": "fi", "ﬂ": "fl", "ﬃ": "ffi", "ﬄ": "ffl", "ﬅ": "st", "ﬆ": "st"})
 
 
 def clean_page(text: str, drop_line_patterns: list[str] | None = None) -> str:
-    """Normaliza acentos (NFC), remove hifenização de quebra de linha, espaços repetidos
-    e linhas de ruído (cabeçalho corrente, número de página) definidas por regex."""
+    """Normaliza acentos (NFC) e ligaduras, remove hifenização de quebra de linha,
+    espaços repetidos e linhas de ruído (cabeçalho corrente, número de página)."""
     if not text:
         return ""
-    text = unicodedata.normalize("NFC", text)
+    text = unicodedata.normalize("NFC", text).translate(_LIGATURES)
     text = _HYPHEN_BREAK.sub(r"\1\2", text)
     patterns = [re.compile(p) for p in (drop_line_patterns or [r"^\s*\d{1,4}\s*$"])]
     lines = []

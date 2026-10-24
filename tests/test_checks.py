@@ -44,6 +44,8 @@ def test_anchor_terms_ignore_case_and_accent_encoding():
 def test_bad_chars_detects_broken_diacritics():
     res = checks.bad_chars([(1, "F¨eanor e ﬁlhos")], 0.0)
     assert not res.ok and "F¨eanor" in res.detail
+    assert "U+FB01" in res.detail and "U+00A8" in res.detail
+    assert checks.bad_chars([(1, clean_page("os ﬁlhos"))], 0.0).ok
     assert checks.bad_chars([(1, "Fëanor e filhos")], 0.0).ok
 
 
