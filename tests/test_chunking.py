@@ -1,6 +1,6 @@
 import pytest
 
-from src.chunking import chunk_pages, clean_page, find_headings, split_paragraphs
+from src.chunking import chunk_pages, clean_page, find_headings, split_paragraphs, toc_pages
 from src.retrieval import hit_at_k, reciprocal_rank, parse_search_result
 
 
@@ -74,6 +74,17 @@ def test_two_line_uppercase_title_is_joined():
         "CAPÍTULO VII: DAS SILMARILS E DA INQUIETAÇÃO DOS NOLDOR"]
     chunks = chunk_pages(pages, chunk_size_words=50, overlap_words=5, chapter_regex=regex, prepend_chapter=False)
     assert chunks[0].text == "Naquela época foram feitas as coisas"  # texto normal não é juntado ao título
+
+
+def test_table_of_contents_is_detected_and_titles_are_not_joined():
+    regex = r"^CAP[IÍ]TULO [IVXLC]+\b"
+    toc = "CAPÍTULO I: DO INÍCIO DOS TEMPOS\nCAPÍTULO II: DE AULË E YAVANNA\nCAPÍTULO III: DA CHEGADA DOS ELFOS"
+    pages = [(5, toc), (63, "CAPÍTULO I: DO INÍCIO DOS\nTEMPOS\nNo princípio havia texto")]
+    assert toc_pages(pages, regex) == [5]
+    # no sumário, cada linha de título continua sendo um título separado
+    assert len(find_headings([pages[0]], regex)) == 3
+    assert find_headings([pages[1]], regex)[0]["title"] == "CAPÍTULO I: DO INÍCIO DOS TEMPOS"
+    assert toc_pages(pages, None) == []
 
 
 def test_running_header_with_chapter_name_is_ignored():

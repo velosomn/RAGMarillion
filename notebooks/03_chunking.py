@@ -9,7 +9,8 @@
 # MAGIC com **Change Data Feed** habilitado (exigência do índice Delta Sync).
 # MAGIC
 # MAGIC Títulos são detectados **linha a linha** pelo `CHAPTER_REGEX`. Um título igual ao do
-# MAGIC capítulo atual (cabeçalho corrente com o nome do capítulo) é ignorado.
+# MAGIC capítulo atual (cabeçalho corrente com o nome do capítulo) é ignorado, e páginas com
+# MAGIC vários títulos (sumário) ficam de fora.
 
 # COMMAND ----------
 
@@ -21,9 +22,14 @@ import os, sys
 sys.path.append(os.path.abspath(".."))
 import pandas as pd
 from src import checks
-from src.chunking import chunk_pages, find_headings
+from src.chunking import chunk_pages, find_headings, toc_pages
 
 pages = [(r.page, r.text) for r in spark.table(PAGES_TABLE).orderBy("page").collect()]
+
+# Sumário: páginas com vários títulos repetiriam todos os capítulos como capítulos vazios
+toc = toc_pages(pages, CHAPTER_REGEX)
+pages = [(n, t) for n, t in pages if n not in toc]
+print(f"Sumário detectado e ignorado nas páginas: {toc or 'nenhuma'}")
 
 chunks = chunk_pages(
     pages,

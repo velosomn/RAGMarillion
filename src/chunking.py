@@ -63,6 +63,10 @@ def iter_blocks(pages: list[tuple[int, str]], chapter_regex: str | None = None) 
     Linha vazia separa parágrafo; linhas soltas do PDF são unidas com espaço.
     """
     chap_re = re.compile(chapter_regex) if chapter_regex else None
+
+    def is_heading(line: str) -> bool:
+        return bool(chap_re and chap_re.match(line) and len(line.split()) <= MAX_HEADING_WORDS)
+
     for page_num, text in pages:
         buf: list[str] = []
         lines = [line.strip() for line in text.splitlines()]
@@ -70,11 +74,11 @@ def iter_blocks(pages: list[tuple[int, str]], chapter_regex: str | None = None) 
         while i < len(lines):
             line = lines[i]
             i += 1
-            if chap_re and chap_re.match(line) and len(line.split()) <= MAX_HEADING_WORDS:
+            if is_heading(line):
                 if buf:
                     yield "para", page_num, " ".join(buf)
                     buf = []
-                while (i < len(lines) and lines[i].isupper()
+                while (i < len(lines) and lines[i].isupper() and not is_heading(lines[i])
                        and len(line.split()) + len(lines[i].split()) <= MAX_HEADING_WORDS):
                     line = f"{line} {lines[i]}"
                     i += 1
@@ -91,6 +95,18 @@ def iter_blocks(pages: list[tuple[int, str]], chapter_regex: str | None = None) 
 def split_paragraphs(text: str) -> list[str]:
     """Junta linhas em parágrafos (sem detecção de título)."""
     return [t for _, _, t in iter_blocks([(0, text)])]
+
+
+def toc_pages(pages: list[tuple[int, str]], chapter_regex: str | None, min_headings: int = 3) -> list[int]:
+    """Páginas com `min_headings` ou mais linhas de título: o sumário."""
+    if not chapter_regex:
+        return []
+    chap_re = re.compile(chapter_regex)
+    return [
+        n for n, text in pages
+        if sum(1 for line in text.splitlines()
+               if chap_re.match(line.strip()) and len(line.split()) <= MAX_HEADING_WORDS) >= min_headings
+    ]
 
 
 def find_headings(pages: list[tuple[int, str]], chapter_regex: str | None) -> list[dict]:
