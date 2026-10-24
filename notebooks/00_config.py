@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "6"
+# ///
 # MAGIC %md
 # MAGIC # 00 · Configuração
 # MAGIC Todos os outros notebooks fazem `%run ./00_config`. Ajuste aqui, não no código.
@@ -11,7 +15,7 @@ CATALOG = "workspace"
 SCHEMA = "ragmarillion"
 VOLUME = "raw"
 
-PDF_FILENAME = "silmarillion.pdf"  # nome do arquivo que você subir no Volume
+PDF_FILENAME = "O Silmarillion - J.R.R. Tolkien.pdf"  # nome do arquivo que você subir no Volume
 PDF_PATH = f"/Volumes/{CATALOG}/{SCHEMA}/{VOLUME}/{PDF_FILENAME}"
 
 # --- Modo de teste -----------------------------------------------------------
@@ -19,7 +23,7 @@ PDF_PATH = f"/Volumes/{CATALOG}/{SCHEMA}/{VOLUME}/{PDF_FILENAME}"
 # Escolha um trecho que atravesse a passagem entre dois capítulos: é o que testa o
 # CHAPTER_REGEX e os cabeçalhos. Tabelas e índice ganham o sufixo _teste, para não
 # sobrescrever os do livro inteiro.
-PAGE_RANGE = None
+PAGE_RANGE = (153,176)
 TEST_MODE = PAGE_RANGE is not None
 _SUFFIX = "_teste" if TEST_MODE else ""
 MODE_TAGS = {"modo": "teste" if TEST_MODE else "completo", "paginas": str(PAGE_RANGE or "todas")}
@@ -44,7 +48,7 @@ CHUNK_SIZE_WORDS = 350
 CHUNK_OVERLAP_WORDS = 60
 # Regex que reconhece títulos de capítulo no SEU PDF (veja o notebook 02).
 # Deixe None até inspecionar o texto.
-CHAPTER_REGEX = None
+CHAPTER_REGEX = r"^CAP[IÍ]TULO [IVXLC]+\b"
 PREPEND_CHAPTER = True  # injeta o título do capítulo no texto do chunk
 
 # --- Recuperação -------------------------------------------------------------
