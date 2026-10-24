@@ -29,6 +29,7 @@ class RAGMarillion:
             columns=COLUMNS,
             num_results=self.top_k,
             query_type=self.query_type,
+            disable_notice=True,
         )
         return [
             Document(

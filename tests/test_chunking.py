@@ -67,6 +67,15 @@ def test_heading_glued_to_text_is_detected():
     ]
 
 
+def test_two_line_uppercase_title_is_joined():
+    pages = [(1, "CAPÍTULO VII: DAS SILMARILS\nE DA INQUIETAÇÃO DOS NOLDOR\nNaquela época foram feitas as coisas")]
+    regex = r"^CAP[IÍ]TULO [IVXLC]+\b"
+    assert [h["title"] for h in find_headings(pages, regex)] == [
+        "CAPÍTULO VII: DAS SILMARILS E DA INQUIETAÇÃO DOS NOLDOR"]
+    chunks = chunk_pages(pages, chunk_size_words=50, overlap_words=5, chapter_regex=regex, prepend_chapter=False)
+    assert chunks[0].text == "Naquela época foram feitas as coisas"  # texto normal não é juntado ao título
+
+
 def test_running_header_with_chapter_name_is_ignored():
     body = " ".join(f"w{i}" for i in range(50))
     pages = [(1, f"Capítulo 1\n\n{body}"), (2, f"CAPÍTULO 1\n{body}")]

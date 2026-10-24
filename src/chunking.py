@@ -59,17 +59,25 @@ def iter_blocks(pages: list[tuple[int, str]], chapter_regex: str | None = None) 
 
     Títulos são detectados por linha, não por parágrafo: o pypdf costuma extrair o texto
     sem linha em branco entre parágrafos, e o título ficaria grudado no texto seguinte.
+    Um título longo quebrado em várias linhas em maiúsculas é juntado numa só.
     Linha vazia separa parágrafo; linhas soltas do PDF são unidas com espaço.
     """
     chap_re = re.compile(chapter_regex) if chapter_regex else None
     for page_num, text in pages:
         buf: list[str] = []
-        for line in text.splitlines():
-            line = line.strip()
+        lines = [line.strip() for line in text.splitlines()]
+        i = 0
+        while i < len(lines):
+            line = lines[i]
+            i += 1
             if chap_re and chap_re.match(line) and len(line.split()) <= MAX_HEADING_WORDS:
                 if buf:
                     yield "para", page_num, " ".join(buf)
                     buf = []
+                while (i < len(lines) and lines[i].isupper()
+                       and len(line.split()) + len(lines[i].split()) <= MAX_HEADING_WORDS):
+                    line = f"{line} {lines[i]}"
+                    i += 1
                 yield "heading", page_num, line
             elif line:
                 buf.append(line)

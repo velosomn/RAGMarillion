@@ -41,7 +41,7 @@ TRUE_FACT, FAKE_FACT = "Fëanor", "Eöl"
 def index_texts(ids: list[str]) -> dict[str, str]:
     """Texto atual dos chunks `ids` no índice (não na tabela)."""
     res = index.similarity_search(query_text=QUESTION, columns=["chunk_id", "text"],
-                                  filters={"chunk_id": ids}, num_results=len(ids))
+                                  filters={"chunk_id": ids}, num_results=len(ids), disable_notice=True)
     return {h["chunk_id"]: h["text"] for h in parse_search_result(res)}
 
 

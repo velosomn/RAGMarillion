@@ -73,7 +73,7 @@ for r in sample:
     words = r.text.split()
     mid = len(words) // 2
     res = index.similarity_search(query_text=" ".join(words[mid:mid + 15]), columns=["chunk_id"],
-                                  num_results=5, query_type="hybrid")
+                                  num_results=5, query_type="hybrid", disable_notice=True)
     hits.append((r.chunk_id, [h["chunk_id"] for h in parse_search_result(res)]))
 
 rep = checks.Report("04 · Índice")
@@ -91,6 +91,7 @@ for qt in ["ann", "hybrid"]:
         columns=["chunk_id", "chapter", "page_start", "text"],
         num_results=3,
         query_type=qt,
+        disable_notice=True,
     )
     print(f"--- {qt} ---")
     for h in parse_search_result(res):
