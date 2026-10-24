@@ -23,7 +23,7 @@ PDF_PATH = f"/Volumes/{CATALOG}/{SCHEMA}/{VOLUME}/{PDF_FILENAME}"
 # Escolha um trecho que atravesse a passagem entre dois capítulos: é o que testa o
 # CHAPTER_REGEX e os cabeçalhos. Tabelas e índice ganham o sufixo _teste, para não
 # sobrescrever os do livro inteiro.
-PAGE_RANGE = (153,176)
+PAGE_RANGE = None
 TEST_MODE = PAGE_RANGE is not None
 _SUFFIX = "_teste" if TEST_MODE else ""
 MODE_TAGS = {"modo": "teste" if TEST_MODE else "completo", "paginas": str(PAGE_RANGE or "todas")}
