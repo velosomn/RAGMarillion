@@ -80,3 +80,26 @@ def test_page_scores():
     assert page_scores(hits, evidence, k=1) == {"recall": 0.0, "rr": 0.0, "ndcg": 0.0, "precision": 0.0}
     assert page_scores([(158, 158)], evidence, k=1)["ndcg"] == 1.0
     assert is_relevant(157, 159, [158]) and not is_relevant(159, 160, [158])
+
+
+def test_call_with_retries():
+    from src.retrieval import call_with_retries
+    calls, waits = [], []
+
+    def flaky(x):
+        calls.append(x)
+        if len(calls) < 3:
+            raise RuntimeError("429 limite")
+        return x * 2
+
+    assert call_with_retries(flaky, 21, tries=4, wait_s=1, sleep=waits.append) == 42
+    assert waits == [1, 2]  # espera crescente
+
+    def always_fails(x):
+        raise RuntimeError("fora do ar")
+
+    try:
+        call_with_retries(always_fails, 1, tries=2, wait_s=0, sleep=lambda s: None)
+        assert False, "deveria ter levantado"
+    except RuntimeError as e:
+        assert "fora do ar" in str(e)

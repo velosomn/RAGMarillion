@@ -36,6 +36,19 @@ def wait_until(condition, timeout_s: int = 900, interval_s: int = 20, what: str 
     return True
 
 
+def call_with_retries(fn, *args, tries: int = 4, wait_s: float = 20, sleep=time.sleep):
+    """Chama fn(*args), repetindo com espera crescente se der erro (ex.: limite de chamadas
+    do Free Edition). Depois da última tentativa, deixa o erro subir."""
+    for attempt in range(1, tries + 1):
+        try:
+            return fn(*args)
+        except Exception as e:
+            if attempt == tries:
+                raise
+            print(f"Tentativa {attempt} falhou ({type(e).__name__}); nova em {wait_s * attempt:.0f}s")
+            sleep(wait_s * attempt)
+
+
 def indexed_row_count(index) -> int | None:
     return index.describe().get("status", {}).get("indexed_row_count")
 

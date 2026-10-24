@@ -28,7 +28,7 @@
 
 # COMMAND ----------
 
-import os, sys, json, hashlib
+import os, sys, json, hashlib, time
 sys.path.append(os.path.abspath(".."))
 import mlflow
 import pandas as pd
@@ -36,7 +36,7 @@ from databricks.ai_search.client import AISearchClient
 from mlflow.genai.scorers import Correctness, RetrievalGroundedness, RetrievalSufficiency
 from src import checks
 from src.rag import ClosedBookLLM, RAGMarillion
-from src.retrieval import hit_at_k, page_scores, reciprocal_rank
+from src.retrieval import call_with_retries, hit_at_k, page_scores, reciprocal_rank
 from src.synth import split_for
 
 mlflow.set_experiment(MLFLOW_EXPERIMENT)
@@ -152,9 +152,28 @@ def retrieval_summary(df: pd.DataFrame) -> dict:
 sample = judge_sample(eval_set, EVAL_JUDGE_SAMPLE)
 
 
+EVAL_TRIES, EVAL_RETRY_WAIT_S = 4, 20   # novas tentativas por chamada ao LLM ou à busca
+
+
+def retry(fn, *args):
+    return call_with_retries(fn, *args, tries=EVAL_TRIES, wait_s=EVAL_RETRY_WAIT_S)
+
+
+def resilient(fn, failures: list):
+    """predict_fn com novas tentativas; o que falhar mesmo assim é contado em `failures`,
+    para a média dos juízes não tratar uma chamada que falhou como resposta errada sem aviso."""
+    def predict(question):
+        try:
+            return retry(fn, question)
+        except Exception as e:
+            failures.append(f"{type(e).__name__}: {e}"[:200])
+            raise
+    return predict
+
+
 def run_config(name: str, top_k: int, query_type: str):
     rag = RAGMarillion(index, LLM_ENDPOINT, top_k=top_k, query_type=query_type)
-    rows = []
+    rows, failures = [], []
     with mlflow.start_run(run_name=name):
         mlflow.set_tags({**MODE_TAGS, "split": EVAL_SPLIT, "tipo": "rag"})
         mlflow.log_params({
@@ -165,10 +184,10 @@ def run_config(name: str, top_k: int, query_type: str):
 
         # 1) Recuperação e recusa: todas as perguntas, sem juiz
         for e in eval_set:
-            docs = rag.retrieve(e["question"])
+            docs = retry(rag.retrieve, e["question"])
             row = {"id": e["id"], "category": e["category"]}
             if e["category"] == "unanswerable":
-                row["refused"] = REFUSAL_TEXT.lower() in rag.generate(e["question"], docs).lower()
+                row["refused"] = REFUSAL_TEXT.lower() in retry(rag.generate, e["question"], docs).lower()
             else:
                 hits = [{"text": d.page_content} for d in docs]
                 row["hit"] = hit_at_k(hits, e["expected_terms"])
@@ -185,30 +204,46 @@ def run_config(name: str, top_k: int, query_type: str):
         jm = {}
         if sample:
             result = mlflow.genai.evaluate(data=as_eval_data(sample),
-                                           predict_fn=lambda question: rag.answer(question), scorers=judges())
+                                           predict_fn=resilient(rag.answer, failures), scorers=judges())
             jm = judged(result)
+            jm["n_failed_answers"] = len(failures)
+            mlflow.log_metric("n_failed_answers", len(failures))
     return df, metrics, jm
 
 
 def run_closed_book():
     llm = ClosedBookLLM(LLM_ENDPOINT)
+    failures = []
     with mlflow.start_run(run_name="llm_sem_contexto"):
         mlflow.set_tags({**MODE_TAGS, "split": EVAL_SPLIT, "tipo": "linha_de_base"})
         mlflow.log_params({"llm": LLM_ENDPOINT, "n_judged": len(sample)})
         result = mlflow.genai.evaluate(data=as_eval_data(sample),
-                                       predict_fn=lambda question: llm.answer(question), scorers=closed_book_judges())
-    return judged(result)
+                                       predict_fn=resilient(llm.answer, failures), scorers=closed_book_judges())
+        mlflow.log_metric("n_failed_answers", len(failures))
+    return {**judged(result), "n_failed_answers": len(failures)}
 
 # COMMAND ----------
 
-# Ablação mínima + linha de base sem contexto
-configs = [
+# Ablação mínima + linha de base sem contexto.
+# Para repetir só algumas, comente as linhas que não quiser rodar.
+CONFIGS = [
     ("ann_k3", 3, "ann"),
     ("ann_k5", 5, "ann"),
     ("hybrid_k5", 5, "hybrid"),
 ]
-results = {name: run_config(name, k, qt) for name, k, qt in configs}
-closed_book = run_closed_book() if sample else {}
+RUN_CLOSED_BOOK = True
+EVAL_PAUSE_S = 60   # pausa entre configurações, para não estourar o limite de chamadas do Free Edition
+
+results = {}
+for i, (name, k, qt) in enumerate(CONFIGS):
+    if i:
+        time.sleep(EVAL_PAUSE_S)
+    results[name] = run_config(name, k, qt)
+closed_book = {}
+if RUN_CLOSED_BOOK and sample:
+    if CONFIGS:
+        time.sleep(EVAL_PAUSE_S)
+    closed_book = run_closed_book()
 
 # COMMAND ----------
 
@@ -223,6 +258,18 @@ summary = pd.DataFrame({name: {**m, **jm} for name, (_, m, jm) in results.items(
 if closed_book:
     summary = pd.concat([summary, pd.DataFrame([closed_book], index=["llm_sem_contexto"])])
 display(summary.round(3))
+
+# Uma resposta que falhou conta como "incorreta" nos juízes: a linha inteira deixa de valer.
+failed = {name: jm.get("n_failed_answers", 0) for name, (_, _, jm) in results.items()}
+if closed_book:
+    failed["llm_sem_contexto"] = closed_book["n_failed_answers"]
+rep = checks.Report("06 · Execução")
+for name, n in failed.items():
+    rep.add(f"Respostas geradas · {name}", checks.Result(
+        n == 0, "todas" if n == 0 else
+        f"{n} falharam mesmo após {EVAL_TRIES} tentativas: as médias dos juízes desta linha não valem; "
+        f"rode de novo só esta configuração (CONFIGS) com uma pausa maior"))
+rep.finish()
 
 # COMMAND ----------
 
