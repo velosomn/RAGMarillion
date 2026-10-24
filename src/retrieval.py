@@ -1,6 +1,7 @@
 """Helpers de recuperação e geração, compartilhados pelos notebooks 05–07."""
 from __future__ import annotations
 
+import math
 import time
 
 SYSTEM_PROMPT = """Você é um assistente que responde perguntas sobre O Silmarillion.
@@ -70,3 +71,30 @@ def reciprocal_rank(hits: list[dict], expected_terms: list[str]) -> float:
         if any(t.lower() in h["text"].lower() for t in expected_terms):
             return 1.0 / i
     return 0.0
+
+
+# --- Métricas por página -------------------------------------------------------
+# A relevância é decidida pela página, não pelo chunk: a mesma marcação do gabarito
+# vale para qualquer chunking, e a ablação compara configurações de forma justa.
+
+def is_relevant(page_start: int, page_end: int, evidence_pages: list[int]) -> bool:
+    """O chunk cobre alguma página onde está a resposta?"""
+    return any(page_start <= p <= page_end for p in evidence_pages)
+
+
+def page_scores(hits: list[tuple[int, int]], evidence_pages: list[int], k: int) -> dict:
+    """Métricas de um ranking: `hits` = [(page_start, page_end), ...] na ordem da busca.
+
+    - recall: algum dos k primeiros cobre a resposta (0 ou 1 por pergunta)
+    - rr: 1 / posição do primeiro relevante
+    - ndcg: relevância binária com uma evidência por pergunta = 1 / log2(1 + posição)
+    - precision: fração dos k que cobrem a resposta
+    """
+    rel = [is_relevant(s, e, evidence_pages) for s, e in hits[:k]]
+    first = next((i for i, r in enumerate(rel, start=1) if r), None)
+    return {
+        "recall": float(first is not None),
+        "rr": 1.0 / first if first else 0.0,
+        "ndcg": 1.0 / math.log2(1 + first) if first else 0.0,
+        "precision": sum(rel) / k if k else 0.0,
+    }

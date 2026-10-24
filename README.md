@@ -42,13 +42,15 @@ notebooks/
   03_chunking.py        # pages → chunks (Change Data Feed ligado)
   04_vector_index.py    # índice Delta Sync + teste ann vs hybrid
   05_rag_chain.py       # cadeia RAG com tracing
-  06_evaluation.py      # hit@k, MRR, recusa, juízes LLM, ablação
+  06a_gerar_gabarito.py # perguntas sintéticas geradas dos próprios trechos, com revisão por amostra
+  06_evaluation.py      # Recall@k/nDCG por página, recusa, juízes LLM, ablação, LLM sem contexto
   07_counterfactual.py  # adultera um fato e verifica se o modelo segue o contexto
 src/
   chunking.py           # funções puras, testáveis fora do Databricks
   retrieval.py          # prompt, parsing, métricas de recuperação
-  rag.py                # classe RAGMarillion (MLflow traced)
+  rag.py                # classe RAGMarillion (MLflow traced) e a linha de base sem contexto
   checks.py             # verificações de qualidade de cada etapa
+  synth.py              # prompt e filtros do gabarito sintético
 data/
   eval_questions.jsonl  # gabarito: factual, aliases, nomes parecidos, multi-hop, sem resposta
 tests/                  # pytest para o chunking e as métricas
@@ -122,21 +124,34 @@ Cria o índice Delta Sync com embeddings gerenciados e compara `ann` vs `hybrid`
 Pergunte à vontade. Abra o experimento no MLflow, aba **Traces**, para ver exatamente quais
 chunks foram recuperados em cada resposta.
 
-### 11. Avaliação (`06_evaluation`)
-Roda uma ablação (`ann_k3`, `ann_k5`, `hybrid_k5`) e registra no MLflow:
-- **hit@k / MRR**: proxy de recall pelos termos esperados de cada pergunta;
+### 11. Gabarito sintético (`06a_gerar_gabarito`)
+Um LLM lê **um** chunk sorteado de cada vez e escreve uma pergunta que aquele trecho responde. Filtros
+descartam respostas fora do trecho, perguntas ambíguas e cópias do texto; o chunk e as páginas de origem
+vêm do sorteio, e são eles que permitem medir a recuperação. As perguntas ficam na tabela `SYNTH_TABLE`
+(no Databricks, não no GitHub), divididas em `dev` e `test`. No fim, revise a amostra de 30 e marque as
+ruins em `REVIEW_REJECT`: a fração rejeitada estima o ruído do gabarito.
+
+### 12. Avaliação (`06_evaluation`)
+Roda uma ablação (`ann_k3`, `ann_k5`, `hybrid_k5`) e uma linha de base `llm_sem_contexto` (o mesmo LLM
+respondendo de memória) e registra no MLflow:
+- **Recall@k, MRR, nDCG@k e Precisão@k por página**, nas perguntas com `evidence_pages` (as sintéticas):
+  o trecho buscado cobre a página da resposta? Independe do chunking;
+- **hit@k / MRR por termos** no gabarito manual;
 - **taxa de recusa** nas perguntas sem resposta no livro;
-- **Correctness** e **RetrievalGroundedness** (juízes LLM).
+- **Correctness**, **RetrievalGroundedness** e **RetrievalSufficiency** (juízes LLM) numa amostra de
+  `EVAL_JUDGE_SAMPLE` perguntas.
 
+Compare configurações com `EVAL_SPLIT = "dev"` e use `"test"` uma vez só, para confirmar a escolhida.
 Se os juízes padrão não estiverem disponíveis no Free Edition, defina `JUDGE_MODEL` no `00_config`
-com um endpoint do workspace.
+com um endpoint do workspace. O raciocínio por trás dessa avaliação está em
+[docs/discussao-avaliacao.md](docs/discussao-avaliacao.md).
 
-### 12. Teste contrafactual (`07_counterfactual`)
+### 13. Teste contrafactual (`07_counterfactual`)
 Troca um fato nos chunks (quem forjou as Silmarils), espera o índice mostrar o texto trocado,
 pergunta de novo e restaura os originais, mesmo se algo falhar no meio. Mede se o modelo **segue o
 contexto** (cita o fato falso e não o verdadeiro) ou **corrige com a memória**.
 
-### 13. Commitar só código
+### 14. Commitar só código
 Pelo Git folder do Databricks (ou localmente), commite as mudanças nos `.py`. Notebooks no formato
 `.py` não guardam saídas, então o texto do livro não vaza para o GitHub.
 
@@ -154,7 +169,8 @@ dados ruins; **AVISO** só pede que você confira. Os limites ficam no `00_confi
 | 03 Chunking | `CHAPTER_REGEX` definido; número de capítulos; títulos que reaparecem (cabeçalho alternado); linhas que batem no regex mas são longas demais; capítulos pequenos ou dominantes; chunks curtos; nenhuma palavra perdida |
 | 04 Índice | Linhas no índice = linhas na tabela; auto-recuperação (buscar um trecho de um chunk devolve esse chunk) |
 | 05 RAG | Citações da resposta estão entre os chunks recuperados |
-| 06 Avaliação | Gabarito bem formado; termos esperados existem no texto da sua edição; juiz LLM responde |
+| 06a Gabarito sintético | Modelo gerador existe; mínimo de perguntas aprovadas; descartes por motivo; taxa de erro da revisão |
+| 06 Avaliação | Gabarito bem formado; gabarito sintético presente; termos esperados existem no texto da sua edição; juiz LLM responde |
 | 07 Contrafactual | Fato falso ausente do contexto original; índice reflete a troca antes da pergunta; restauração confirmada |
 
 ## Modo de teste

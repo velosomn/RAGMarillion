@@ -61,6 +61,23 @@ EVAL_FILE = "../data/eval_questions.jsonl"  # caminho relativo à pasta notebook
 # Free Edition, use um endpoint do workspace, ex.: "databricks:/databricks-meta-llama-3-3-70b-instruct"
 JUDGE_MODEL = None
 REFUSAL_TEXT = "Não encontrei isso nos trechos recuperados"
+# "dev" para comparar configurações; "test" só uma vez, para confirmar a escolhida.
+EVAL_SPLIT = "dev"
+EVAL_JUDGE_SAMPLE = 60   # perguntas por configuração avaliadas pelos juízes LLM (custo)
+
+# --- Gabarito sintético (06a) -------------------------------------------------
+# Um LLM lê UM chunk sorteado e escreve uma pergunta que aquele trecho responde.
+SYNTH_TABLE = f"{CATALOG}.{SCHEMA}.eval_sintetico{_SUFFIX}"  # fica no Databricks, não no GitHub
+SYNTH_N_CHUNKS = 260     # chunks sorteados; depois dos filtros devem sobrar ~200
+SYNTH_MIN_KEPT = 150
+SYNTH_SEED = 42
+SYNTH_OVERWRITE = False  # True = gerar de novo e apagar a revisão feita
+# De preferência um modelo diferente do LLM_ENDPOINT, se houver outro em Serving:
+# o mesmo modelo criar e responder as perguntas deixa a avaliação otimista.
+SYNTH_LLM_ENDPOINT = LLM_ENDPOINT
+# Capítulos de apoio não geram perguntas sobre a história (comparação pelo começo do nome)
+SYNTH_EXCLUDE_CHAPTERS = ["Início", "GENEALOGIAS", "NOTA SOBRE A PRONÚNCIA", "GLOSSÁRIO", "APÊNDICE", "MAPAS"]
+SYNTH_MAX_COPY_WORDS = 6  # pergunta que repete 6+ palavras seguidas do trecho é cópia
 
 # --- Verificações ------------------------------------------------------------
 # ERRO para o notebook; AVISO só registra. Checagens que só fazem sentido no livro

@@ -7,7 +7,10 @@ from mlflow.deployments import get_deploy_client
 
 from src.retrieval import build_messages, parse_search_result
 
-COLUMNS = ["chunk_id", "chapter", "page_start", "text"]
+COLUMNS = ["chunk_id", "chapter", "page_start", "page_end", "text"]
+
+CLOSED_BOOK_PROMPT = """Você responde perguntas sobre O Silmarillion, de J.R.R. Tolkien, de memória.
+Responda em português, de forma concisa."""
 
 
 class RAGMarillion:
@@ -35,7 +38,8 @@ class RAGMarillion:
             Document(
                 id=h["chunk_id"],
                 page_content=h["text"],
-                metadata={"chapter": h["chapter"], "page_start": h["page_start"], "score": h.get("score")},
+                metadata={"chapter": h["chapter"], "page_start": h["page_start"],
+                          "page_end": h.get("page_end", h["page_start"]), "score": h.get("score")},
             )
             for h in parse_search_result(res)
         ]
@@ -58,3 +62,26 @@ class RAGMarillion:
     def answer(self, question: str) -> str:
         self.last_docs = self.retrieve(question)
         return self.generate(question, self.last_docs)
+
+
+class ClosedBookLLM:
+    """Linha de base: o mesmo LLM respondendo só de memória, sem busca nenhuma."""
+
+    def __init__(self, llm_endpoint: str, temperature: float = 0.0, max_tokens: int = 300):
+        self.llm_endpoint = llm_endpoint
+        self.temperature = temperature
+        self.max_tokens = max_tokens
+        self.client = get_deploy_client("databricks")
+
+    @mlflow.trace(span_type=SpanType.LLM)
+    def answer(self, question: str) -> str:
+        resp = self.client.predict(
+            endpoint=self.llm_endpoint,
+            inputs={
+                "messages": [{"role": "system", "content": CLOSED_BOOK_PROMPT},
+                             {"role": "user", "content": question}],
+                "temperature": self.temperature,
+                "max_tokens": self.max_tokens,
+            },
+        )
+        return resp["choices"][0]["message"]["content"]

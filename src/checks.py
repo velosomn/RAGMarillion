@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from src.chunking import FRONT_MATTER, MAX_HEADING_WORDS, Chunk, iter_blocks, normalize_title
 
 LEVELS = ("ERRO", "AVISO")
-EVAL_CATEGORIES = ("factual", "aliases", "similar_names", "multi_hop", "unanswerable")
+EVAL_CATEGORIES = ("factual", "aliases", "similar_names", "multi_hop", "unanswerable", "sintetica")
 
 
 @dataclass
