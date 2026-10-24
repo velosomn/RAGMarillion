@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "6"
+# ///
 # MAGIC %md
 # MAGIC # 04 · Índice de Vector Search
 # MAGIC Cria um índice **Delta Sync** com embeddings calculados pela Databricks a partir da coluna `text`.

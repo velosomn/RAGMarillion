@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "6"
+# ///
 # MAGIC %md
 # MAGIC # 03 · Chunking
 # MAGIC Quebra as páginas em chunks que não atravessam capítulos e grava na tabela `chunks`

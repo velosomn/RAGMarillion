@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "6"
+# ///
 # MAGIC %md
 # MAGIC # 05 · Cadeia RAG
 # MAGIC Recupera top-k → monta prompt com citações → chama o LLM. Tudo instrumentado com MLflow Tracing:
