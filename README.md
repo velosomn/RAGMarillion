@@ -9,6 +9,8 @@ modelo usa o contexto ou a memória.
 > contém **apenas código**. O PDF, os chunks e as saídas dos notebooks não são versionados.
 > Para reproduzir, use a sua própria cópia do livro.
 
+**Andamento:** o que já foi feito, os resultados e os próximos passos estão em [docs/progresso.md](docs/progresso.md).
+
 ---
 
 ## Por que o Silmarillion é um bom benchmark de RAG
