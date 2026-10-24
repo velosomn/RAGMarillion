@@ -54,12 +54,24 @@ def normalize_title(title: str) -> str:
     return " ".join(title.split()).casefold()
 
 
+# Palavras de ligação: um título que termina com uma delas (ou cuja linha seguinte começa
+# com uma delas) continua na linha seguinte, como "DO INÍCIO DOS" / "TEMPOS".
+_CONNECTORS = {"E", "DE", "DA", "DO", "DAS", "DOS", "EM", "NA", "NO", "NAS", "NOS",
+               "A", "O", "AS", "OS", "AO", "AOS", "À", "ÀS"}
+
+
+def _title_continues(title: str, next_line: str) -> bool:
+    last, first = title.split()[-1], next_line.split()[0]
+    return last.endswith((":", ",", ";")) or last in _CONNECTORS or first in _CONNECTORS
+
+
 def iter_blocks(pages: list[tuple[int, str]], chapter_regex: str | None = None) -> Iterator[tuple[str, int, str]]:
     """Percorre as páginas linha a linha e gera ("heading" | "para", página, texto).
 
     Títulos são detectados por linha, não por parágrafo: o pypdf costuma extrair o texto
     sem linha em branco entre parágrafos, e o título ficaria grudado no texto seguinte.
-    Um título longo quebrado em várias linhas em maiúsculas é juntado numa só.
+    Um título longo quebrado em várias linhas em maiúsculas é juntado numa só, quando a
+    quebra cai numa palavra de ligação (subtítulos como "CONSOANTES" ficam de fora).
     Linha vazia separa parágrafo; linhas soltas do PDF são unidas com espaço.
     """
     chap_re = re.compile(chapter_regex) if chapter_regex else None
@@ -79,6 +91,7 @@ def iter_blocks(pages: list[tuple[int, str]], chapter_regex: str | None = None) 
                     yield "para", page_num, " ".join(buf)
                     buf = []
                 while (i < len(lines) and lines[i].isupper() and not is_heading(lines[i])
+                       and _title_continues(line, lines[i])
                        and len(line.split()) + len(lines[i].split()) <= MAX_HEADING_WORDS):
                     line = f"{line} {lines[i]}"
                     i += 1

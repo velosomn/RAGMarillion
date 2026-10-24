@@ -73,16 +73,28 @@ pages = [(n, clean_page(t, DROP_LINE_PATTERNS)) for n, t in raw_pages]
 
 # COMMAND ----------
 
-# Descobrir títulos de capítulo: linhas curtas que começam com padrões típicos
+# Títulos de capítulo
+# - Sem CHAPTER_REGEX: lista linhas curtas que PODEM ser título, para você escrever o regex.
+#   É um filtro solto (pega "De violação..." etc.); não é o que o chunking usa.
+# - Com CHAPTER_REGEX: lista EXATAMENTE os títulos que o 03 vai usar, sem o sumário.
 import re
-candidates = re.compile(r"^(Capítulo|CAPÍTULO|Chapter|Of |Do |Da |Dos |Das |De )")
-seen = []
-for n, t in pages:
-    for line in t.splitlines():
-        if candidates.match(line) and len(line.split()) <= 12:
-            seen.append((n, line))
-for n, line in seen[:60]:
-    print(n, "|", line)
+from src.chunking import find_headings, toc_pages
+
+toc, headings = [], []
+if CHAPTER_REGEX is None:
+    candidates = re.compile(r"^(Capítulo|CAPÍTULO|Chapter|Of |Do |Da |Dos |Das |De )|^[A-ZÀ-Ý][A-ZÀ-Ý ,:\-]{3,}$")
+    seen = [(n, line) for n, t in pages for line in t.splitlines()
+            if candidates.match(line) and len(line.split()) <= 12]
+    print(f"CHAPTER_REGEX não definido. {len(seen)} linhas candidatas a título:")
+    for n, line in seen:
+        print(f"{n:>5} | {line}")
+else:
+    toc = toc_pages(pages, CHAPTER_REGEX)
+    headings = find_headings([(n, t) for n, t in pages if n not in toc], CHAPTER_REGEX)
+    print(f"Sumário (ignorado no 03): páginas {toc or 'nenhuma'}")
+    print(f"{sum(not h['repeat'] for h in headings)} títulos pelo CHAPTER_REGEX:")
+    for h in headings:
+        print(f"{h['page']:>5} | {h['title']}" + ("   [repetido, ignorado]" if h["repeat"] else ""))
 
 # COMMAND ----------
 
@@ -101,6 +113,17 @@ else:
 rep.add("Termos-âncora", checks.anchor_terms(pages, ANCHOR_TERMS, MIN_ANCHOR_FRAC), level=BOOK_LEVEL)
 rep.add("Caracteres corrompidos", checks.bad_chars(pages, MAX_BAD_CHAR_FRAC), level="AVISO")
 rep.add("Linhas repetidas (cabeçalho/rodapé)", checks.repeated_lines(pages, REPEATED_LINE_MIN_FRAC), level="AVISO")
+# Títulos: só AVISO aqui, porque a tabela de páginas não depende do regex. O 03 cobra como ERRO.
+if CHAPTER_REGEX is None:
+    rep.info("Títulos", "CHAPTER_REGEX não definido; veja a lista de candidatos acima")
+else:
+    rep.info("Sumário", f"páginas {toc or 'nenhuma'} (ignoradas no 03)")
+    if TEST_MODE:
+        rep.info("Número de capítulos", f"{sum(not h['repeat'] for h in headings)} (modo de teste: sem faixa esperada)")
+    else:
+        rep.add("Número de capítulos", checks.chapter_count(headings, EXPECTED_CHAPTERS), level="AVISO")
+    rep.add("Títulos duplicados", checks.duplicate_headings(headings), level="AVISO")
+    rep.add("Linhas longas que batem no regex", checks.long_heading_lines(pages, CHAPTER_REGEX), level="AVISO")
 rep.finish()
 
 # COMMAND ----------

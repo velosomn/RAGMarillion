@@ -76,6 +76,24 @@ def test_two_line_uppercase_title_is_joined():
     assert chunks[0].text == "Naquela época foram feitas as coisas"  # texto normal não é juntado ao título
 
 
+def test_title_join_needs_a_connector():
+    regex = r"^(CAP[IÍ]TULO [IVXLC]+\b|NOTA SOBRE A PRON[ÚU]NCIA$|DOS AN[ÉE]IS DE PODER\b)"
+    pages = [
+        (63, "CAPÍTULO I: DO INÍCIO DOS\nTEMPOS\ntexto"),
+        (330, "CAPÍTULO XV: DOS NOLDOR\nEM BELERIAND\ntexto"),
+        (450, "CAPÍTULO XX: DA QUINTA BATALHA:\nNIRNAETH ARNOEDIAD\ntexto"),
+        (799, "DOS ANÉIS DE PODER E DA\nTERCEIRA ERA\nDos anéis de poder"),
+        (864, "NOTA SOBRE A PRONÚNCIA\nCONSOANTES\ntexto"),
+    ]
+    assert [h["title"] for h in find_headings(pages, regex)] == [
+        "CAPÍTULO I: DO INÍCIO DOS TEMPOS",
+        "CAPÍTULO XV: DOS NOLDOR EM BELERIAND",
+        "CAPÍTULO XX: DA QUINTA BATALHA: NIRNAETH ARNOEDIAD",
+        "DOS ANÉIS DE PODER E DA TERCEIRA ERA",
+        "NOTA SOBRE A PRONÚNCIA",  # subtítulo não entra no nome
+    ]
+
+
 def test_table_of_contents_is_detected_and_titles_are_not_joined():
     regex = r"^CAP[IÍ]TULO [IVXLC]+\b"
     toc = "CAPÍTULO I: DO INÍCIO DOS TEMPOS\nCAPÍTULO II: DE AULË E YAVANNA\nCAPÍTULO III: DA CHEGADA DOS ELFOS"
