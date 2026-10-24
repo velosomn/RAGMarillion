@@ -133,26 +133,3 @@ from pyspark.sql import Row
 df = spark.createDataFrame([Row(page=n, text=t) for n, t in pages])
 df.write.mode("overwrite").saveAsTable(PAGES_TABLE)
 print(f"Gravado em {PAGES_TABLE}: {df.count()} páginas")
-
-# COMMAND ----------
-
-import re
-partes = re.compile(r"(?i)a\s*i\s*n\s*u\s*l\s*i\s*n\s*d|v\s*a\s*l\s*a\s*q\s*u\s*e\s*n\s*t\s*a|a\s*k\s*a\s*l\s*l\s*a\s*b|an[eé]is\s+de\s+poder|terceira\s+era")
-for n, t in pages:
-    for line in t.splitlines():
-        if partes.search(line) and len(line.split()) <= 12:
-            print(n, "|", repr(line.strip()))
-
-
-# COMMAND ----------
-
-for n, t in pages:
-    if n >= 840:
-        for line in t.splitlines():
-            s = line.strip()
-            if s.isupper() and len(s) > 3 and len(s.split()) <= 8:
-                print(n, "|", s)
-
-
-# COMMAND ----------
-
