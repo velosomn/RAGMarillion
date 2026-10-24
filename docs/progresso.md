@@ -188,7 +188,7 @@ Com `PAGE_RANGE = (153, 176)` no `00_config`, o fluxo processa só essas página
 O próximo marco é medir a qualidade de forma sistemática: hoje há só 4 perguntas de teste, e o gabarito tem 11. A ordem abaixo vai do que destrava mais ao que depende dos anteriores.
 
 - [ ] Rodar o 04 do livro inteiro e confirmar o resumo (529 linhas no índice, auto-recuperação).
-- [ ] Inspecionar no MLflow os 5 trechos recuperados para Lúthien e Elrond: vieram do Glossário, das Genealogias ou só da história de Beren e Lúthien?
+- [ ] Inspecionado: os 5 trechos recuperados para Lúthien e Elrond vieram todos do capítulo XIX. Diagnóstico e caminhos em [discussao-avaliacao.md](discussao-avaliacao.md).
 - [ ] Rodar o 06 com o gabarito atual, como linha de base (hit@k, MRR, recusa, Correctness e RetrievalGroundedness).
 - [ ] Ampliar o gabarito para cerca de 60 perguntas, balanceadas por categoria, com `evidence_pages` (páginas do PDF onde está cada resposta) e divisão em desenvolvimento e teste.
 - [ ] Acrescentar ao 06 recall@k e precisão por página, o volume de contexto e um intervalo de confiança pareado entre configurações.
@@ -202,3 +202,5 @@ O próximo marco é medir a qualidade de forma sistemática: hoje há só 4 perg
 
 - Excluir Genealogias, Nota sobre a pronúncia e Mapas do índice? Decidir com os números do 06.
 - O índice e as tabelas do modo de teste (`_teste`) podem ser apagados quando não forem mais úteis.
+
+A discussão sobre como avaliar a recuperação, o risco de overfitting e por que usar um RAG está em [discussao-avaliacao.md](discussao-avaliacao.md).
