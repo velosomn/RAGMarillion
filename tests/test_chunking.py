@@ -76,21 +76,28 @@ def test_two_line_uppercase_title_is_joined():
     assert chunks[0].text == "Naquela época foram feitas as coisas"  # texto normal não é juntado ao título
 
 
-def test_title_join_needs_a_connector():
-    regex = r"^(CAP[IÍ]TULO [IVXLC]+\b|NOTA SOBRE A PRON[ÚU]NCIA$|DOS AN[ÉE]IS DE PODER\b)"
+def test_title_join_follows_the_regex():
+    regex = (r"^(CAP[IÍ]TULO [IVXLC]+\b|NOTA SOBRE A PRON[ÚU]NCIA$|DOS AN[ÉE]IS DE PODER\b"
+             r"|AKALLAB[ÊE]TH$|AP[ÊE]NDICE$)")
     pages = [
         (63, "CAPÍTULO I: DO INÍCIO DOS\nTEMPOS\ntexto"),
         (330, "CAPÍTULO XV: DOS NOLDOR\nEM BELERIAND\ntexto"),
-        (450, "CAPÍTULO XX: DA QUINTA BATALHA:\nNIRNAETH ARNOEDIAD\ntexto"),
+        (521, "CAPÍTULO XX: DA QUINTA\nBATALHA: NIRNAETH ARNOEDIAD\ntexto"),
+        (552, "CAPÍTULO XXI: DE TÚRIN\nTURAMBAR\ntexto"),
+        (727, "AKALLABÊTH\nA QUEDA DE NÚMENOR\ntexto"),
         (799, "DOS ANÉIS DE PODER E DA\nTERCEIRA ERA\nDos anéis de poder"),
         (864, "NOTA SOBRE A PRONÚNCIA\nCONSOANTES\ntexto"),
+        (987, "APÊNDICE\nELEMENTOS EM NOMES\ntexto"),
     ]
     assert [h["title"] for h in find_headings(pages, regex)] == [
         "CAPÍTULO I: DO INÍCIO DOS TEMPOS",
         "CAPÍTULO XV: DOS NOLDOR EM BELERIAND",
-        "CAPÍTULO XX: DA QUINTA BATALHA: NIRNAETH ARNOEDIAD",
+        "CAPÍTULO XX: DA QUINTA BATALHA: NIRNAETH ARNOEDIAD",  # regex casa só o começo: junta
+        "CAPÍTULO XXI: DE TÚRIN TURAMBAR",
+        "AKALLABÊTH A QUEDA DE NÚMENOR",                       # nome completo + palavra de ligação
         "DOS ANÉIS DE PODER E DA TERCEIRA ERA",
-        "NOTA SOBRE A PRONÚNCIA",  # subtítulo não entra no nome
+        "NOTA SOBRE A PRONÚNCIA",                              # nome completo: subtítulo fica de fora
+        "APÊNDICE",
     ]
 
 

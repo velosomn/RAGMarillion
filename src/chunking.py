@@ -70,8 +70,9 @@ def iter_blocks(pages: list[tuple[int, str]], chapter_regex: str | None = None) 
 
     Títulos são detectados por linha, não por parágrafo: o pypdf costuma extrair o texto
     sem linha em branco entre parágrafos, e o título ficaria grudado no texto seguinte.
-    Um título longo quebrado em várias linhas em maiúsculas é juntado numa só, quando a
-    quebra cai numa palavra de ligação (subtítulos como "CONSOANTES" ficam de fora).
+    Um título longo quebrado em várias linhas em maiúsculas é juntado numa só. Títulos que o
+    regex casa por inteiro só continuam após palavra de ligação, para que um subtítulo como
+    "CONSOANTES" não entre no nome de "NOTA SOBRE A PRONÚNCIA".
     Linha vazia separa parágrafo; linhas soltas do PDF são unidas com espaço.
     """
     chap_re = re.compile(chapter_regex) if chapter_regex else None
@@ -90,8 +91,12 @@ def iter_blocks(pages: list[tuple[int, str]], chapter_regex: str | None = None) 
                 if buf:
                     yield "para", page_num, " ".join(buf)
                     buf = []
+                # Se o regex casa a linha inteira (ex.: "NOTA SOBRE A PRONÚNCIA$"), o nome está
+                # completo e só continua após palavra de ligação; se casa só o começo
+                # ("CAPÍTULO XX..."), qualquer linha seguinte em maiúsculas faz parte do nome.
+                complete = chap_re.fullmatch(line) is not None
                 while (i < len(lines) and lines[i].isupper() and not is_heading(lines[i])
-                       and _title_continues(line, lines[i])
+                       and (not complete or _title_continues(line, lines[i]))
                        and len(line.split()) + len(lines[i].split()) <= MAX_HEADING_WORDS):
                     line = f"{line} {lines[i]}"
                     i += 1
