@@ -15,3 +15,8 @@ __pycache__/
 
 # Databricks
 .databricks/
+
+# Credenciais nunca vão para o repositório
+.env
+.databrickscfg
+*token*.txt

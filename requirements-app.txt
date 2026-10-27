@@ -1,0 +1,2 @@
+# Dependências da aplicação de terminal (app/perguntar.py). Traz o mlflow-skinny e o databricks-sdk.
+databricks-ai-search>=0.80,<1.0

@@ -190,6 +190,24 @@ Escolha um trecho que atravesse a passagem entre dois capítulos. No modo de tes
 
 Volte para `PAGE_RANGE = None` e rode do `02` em diante para o livro inteiro.
 
+## Aplicação no terminal
+
+Depois de rodar os notebooks até o 04, dá para perguntar direto do seu computador. A aplicação usa o
+índice e o LLM do Databricks, com a configuração escolhida na avaliação (busca híbrida, 5 trechos), e
+mostra a resposta com as fontes citadas, capítulo e página.
+
+```bash
+pip install -r requirements-app.txt
+python app/perguntar.py "Quem forjou as Silmarils?"
+python app/perguntar.py            # modo interativo: Enter vazio ou 'sair' encerra
+python app/perguntar.py --trechos  # mostra também os trechos recuperados
+```
+
+**Credenciais.** Crie um token em **Settings > Developer > Access tokens** no Databricks e configure
+**fora do repositório**, por variáveis de ambiente (`DATABRICKS_HOST` e `DATABRICKS_TOKEN`) ou pelo
+arquivo `~/.databrickscfg`. Sem elas, a aplicação explica o que configurar. Com `--mlflow`, cada
+pergunta é registrada nos traces do experimento `ragmarillion`.
+
 ## Testes locais
 ```bash
 pip install pytest
