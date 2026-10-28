@@ -27,8 +27,11 @@ class Chunk:
         return asdict(self)
 
 
-# Palavra partida no fim da linha: hífen comum ou tipográfico, com espaços soltos em volta da quebra
-_HYPHEN_BREAK = re.compile(r"(\w)[-‐‑][ \t]*\n[ \t]*(\w)")
+# Palavra partida no fim da linha (hífen comum ou tipográfico, espaços soltos em volta da quebra):
+# continuação em minúscula = sílabas de uma palavra (o hífen sai); em maiúscula = nome composto,
+# como Tol-in-Gaurhoth ou Ost-in-Edhil (o hífen fica, só a quebra de linha sai).
+_HYPHEN_BREAK = re.compile(r"(\w)[-\u2010\u2011][ \t]*\n[ \t]*([a-zà-öø-ÿ])")
+_HYPHEN_BREAK_NAME = re.compile(r"(\w)[-\u2010\u2011][ \t]*\n[ \t]*([A-ZÀ-ÖØ-Þ])")
 _SOFT_HYPHEN = "­"  # hífen invisível que alguns PDFs deixam no meio das palavras
 _MULTI_SPACE = re.compile(r"[ \t]+")
 # Ligaduras tipográficas do PDF (ﬁ, ﬂ...): na tela parecem "fi", mas para a busca
@@ -43,6 +46,7 @@ def clean_page(text: str, drop_line_patterns: list[str] | None = None) -> str:
         return ""
     text = unicodedata.normalize("NFC", text).translate(_LIGATURES).replace(_SOFT_HYPHEN, "")
     text = _HYPHEN_BREAK.sub(r"\1\2", text)
+    text = _HYPHEN_BREAK_NAME.sub(r"\1-\2", text)
     patterns = [re.compile(p) for p in (drop_line_patterns or [r"^\s*\d{1,4}\s*$"])]
     lines = []
     for line in text.splitlines():

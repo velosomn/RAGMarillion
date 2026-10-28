@@ -159,3 +159,11 @@ def test_clean_page_joins_hyphen_breaks_with_spaces_and_soft_hyphens():
     assert clean_page("o nome Ercha\u2010\nmion") == "o nome Erchamion"
     assert clean_page("Ercha\u00admion") == "Erchamion"
     assert clean_page("Terra-média continua") == "Terra-média continua"  # hífen no meio da linha fica
+
+
+def test_hyphen_break_keeps_compound_names():
+    # continuação em maiúscula = nome composto: o hífen fica
+    assert clean_page("foram para Tol-in-\nGaurhoth") == "foram para Tol-in-Gaurhoth"
+    assert clean_page("os artífices de Ost-in-\nEdhil") == "os artífices de Ost-in-Edhil"
+    # continuação em minúscula = sílabas: o hífen sai
+    assert clean_page("o nome Ercha-\nmion") == "o nome Erchamion"
