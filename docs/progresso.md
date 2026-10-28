@@ -1,34 +1,41 @@
 # RAGMarillion — o que foi feito até agora
 
-Atualizado em 24/10/2026 · velosomn
+Atualizado em 28/10/2026 · velosomn
 
 ## Visão geral
 
-O RAGMarillion responde perguntas sobre O Silmarillion citando os trechos do livro, e hoje roda de ponta a ponta no livro inteiro: 1.020 páginas, 529 chunks, 36 capítulos. A ingestão, o chunking, o índice e a cadeia RAG estão validados. A avaliação sistemática (notebook 06) e o teste contrafactual (07) ainda não rodaram.
+O RAGMarillion responde perguntas sobre O Silmarillion citando os trechos do livro, roda de ponta a ponta no livro inteiro (1.020 páginas, 529 chunks, 36 capítulos) e já tem uma avaliação com números: a busca híbrida acerta a página da resposta em 91% das perguntas e cerca de 80% das respostas estão corretas com o prompt v2. Dá para perguntar direto do terminal do computador. O teste contrafactual (07) ainda não rodou, e as estratégias de busca estão implementadas mas ainda não avaliadas.
 
 O repositório é público em [github.com/velosomn/RAGMarillion](https://github.com/velosomn/RAGMarillion) e contém só código. O PDF, os chunks e as saídas dos notebooks ficam no Databricks, por causa dos direitos autorais da obra.
 
 | Peça | Escolha |
 | --- | --- |
 | Plataforma | Databricks Free Edition, computação Serverless (ambiente v6) |
-| Armazenamento | Unity Catalog: schema `workspace.ragmarillion`, Volume `raw`, tabelas Delta `pages` e `chunks` |
-| Busca | Databricks AI Search (antigo Vector Search), índice Delta Sync, busca híbrida |
+| Armazenamento | Unity Catalog: schema `workspace.ragmarillion`, Volume `raw`, tabelas Delta `pages`, `chunks` e `eval_sintetico` |
+| Busca | Databricks AI Search (antigo Vector Search), índice Delta Sync, busca híbrida com 5 trechos |
 | Embeddings | `databricks-qwen3-embedding-0-6b` (multilíngue, bom para o PDF em português) |
-| LLM | `databricks-meta-llama-3-3-70b-instruct`, temperatura 0 |
-| Rastreio e avaliação | MLflow 3 (Tracing e `mlflow.genai.evaluate`) |
-| Testes locais | pytest, 31 testes sobre chunking e verificações |
+| LLM | `databricks-meta-llama-3-3-70b-instruct`, temperatura 0, prompt v2 |
+| Rastreio e avaliação | MLflow 3 (Tracing, `mlflow.genai.evaluate` e juízes prontos) |
+| Aplicação | `app/perguntar.py`, no terminal do computador, usando o índice e o LLM do Databricks |
+| Testes locais | pytest, 58 testes sobre limpeza, chunking, verificações, métricas e estratégias de busca |
 
 ## Linha do tempo
 
-Em dois dias, o projeto saiu de um zip com a estrutura inicial para um RAG validado no livro inteiro, em 15 commits. A tabela lista os marcos, do mais recente ao mais antigo.
+Em seis dias e 28 commits, o projeto saiu de um zip com a estrutura inicial para um RAG avaliado, com aplicação de terminal. A tabela lista os marcos, do mais recente ao mais antigo.
 
 | Data | Commit | O que mudou |
 | --- | --- | --- |
+| 28/10 | `58dba24` | Estratégias de busca `vizinhos`, `diversa` e `por_nome`, comparáveis no 06 e na aplicação |
+| 28/10 | `71e6864` | O 04 compara o texto do índice com o da tabela e testa a busca com 100 palavras do próprio chunk |
+| 28/10 | `3b88cb2` | A limpeza mantém o hífen de nomes compostos partidos no fim da linha (Tol-in-Gaurhoth) |
+| 27/10 | `bdbffa2` | O 06 mede a recusa indevida (perguntas com resposta que o modelo recusou) |
+| 27/10 | `d81ecae` | Prompt v2, perguntas de consistência (anéis de poder) e limpeza do texto extraído |
+| 27/10 | `cfb08ef` | Aplicação de terminal (`app/perguntar.py`) com as fontes citadas |
+| 24/10 | `af10ad9` | O 06 repete chamadas que falham e acusa respostas não geradas (limite de chamadas) |
+| 24/10 | `6e2a9ec` | Gabarito sintético (06a) e métricas de busca por página no 06 |
+| 24/10 | `4f78ba4` | Discussão sobre como avaliar o RAG documentada |
 | 24/10 | `444f1d4` | Junção de título guiada pelo regex: corrige "DA QUINTA" e "DE TÚRIN" cortados |
-| 24/10 | `7f45db1` | O 02 passa a mostrar os títulos que o chunking vai usar e verifica os capítulos |
-| 24/10 | `b4c09f4` | Regex final com as 36 seções e `PAGE_RANGE = None` (feito no Databricks) |
 | 24/10 | `ecad647` | O chunking ignora o sumário (páginas com 3 ou mais títulos) |
-| 24/10 | `c6b4fbb` | Título de capítulo em duas linhas é juntado; aviso de autenticação silenciado |
 | 24/10 | `869cac7` | Primeiro push feito pelo Databricks: nome do PDF, modo de teste, regex inicial |
 | 23/10 | `616cef2` | Conversão de ligaduras tipográficas (ﬁ, ﬂ) na limpeza do texto |
 | 23/10 | `9850d3f` | Troca de `databricks-vectorsearch` por `databricks-ai-search` |
@@ -48,14 +55,17 @@ O `00_config` reúne todos os parâmetros e é carregado no início de cada note
 
 | Módulo | Papel |
 | --- | --- |
-| `src/chunking.py` | Limpeza do texto, detecção de títulos e sumário, divisão em chunks |
+| `src/chunking.py` | Limpeza do texto (acentos, ligaduras, hífens), detecção de títulos e sumário, divisão em chunks |
 | `src/checks.py` | Todas as verificações ERRO/AVISO e o resumo de cada notebook |
-| `src/retrieval.py` | Prompt, leitura dos resultados da busca, métricas hit@k e MRR, esperas pelo índice |
-| `src/rag.py` | Classe `RAGMarillion`: busca, geração e rastreio no MLflow |
+| `src/retrieval.py` | Versões do prompt, estratégias de busca, métricas (hit@k, MRR, Recall@k e nDCG por página), novas tentativas e esperas |
+| `src/rag.py` | Classe `RAGMarillion` (busca com estratégia, geração e rastreio no MLflow) e a linha de base sem contexto |
+| `src/synth.py` | Prompt e filtros do gabarito sintético |
+| `src/answer_format.py` | Fontes citadas e trechos formatados para o terminal |
+| `app/perguntar.py` | Aplicação de terminal |
 
 ## Ambiente Databricks
 
-O ambiente está montado e funcionando, mas quatro problemas apareceram no caminho. Todos foram resolvidos e estão registrados no código ou no repositório.
+O ambiente está montado e funcionando; os problemas que apareceram no caminho estão resolvidos e registrados no código ou no repositório.
 
 **Montagem**
 
@@ -69,9 +79,12 @@ O ambiente está montado e funcionando, mas quatro problemas apareceram no camin
 | Problema | Causa | Solução |
 | --- | --- | --- |
 | O Python não reiniciava no `%pip install` | `databricks-vectorsearch` 0.75 exige `protobuf<6`, e o ambiente Serverless v6 vem com o 6.33.5 | Troca pelo sucessor oficial `databricks-ai-search`, mesma API, sem restrição de protobuf |
-| Conflito de merge no `01_setup` | O Genie alterou a célula de instalação ao mesmo tempo que o GitHub | Mantida a versão do GitHub ("upstream") |
+| Conflito de merge no Pull | Alterações locais no Databricks (o Genie no `01_setup`; linhas comentadas no `06`) na mesma parte que o GitHub mudou | Manter a versão do GitHub ("upstream"); antes de um Pull, descartar alterações locais que não serão enviadas |
 | Push do Databricks recusado | A credencial Git não tinha um token com escrita | Token *fine-grained* só para o repositório, com Contents: Read and write, cadastrado como credencial nova |
 | `PDF não encontrado` | O arquivo no Volume se chama `O Silmarillion - J.R.R. Tolkien.pdf` | `PDF_FILENAME` ajustado no `00_config`; a mensagem de erro já listava os arquivos do Volume |
+| Correção de 0,317 na avaliação | Limite de chamadas do Free Edition: 30 de 60 respostas falharam e contaram como erradas | O 06 repete chamadas, pausa entre configurações e dá ERRO se alguma resposta não for gerada |
+| A avaliação rodou sem o gabarito sintético | No Job, a tarefa `evaluate` estava antes da `Gabarito` | `evaluate` passa a depender de `Gabarito` |
+| Aplicação local sem acesso (401) | `host` com o caminho da página e um valor que não era o token | `host` só até `.cloud.databricks.com`; token pessoal (`dapi...`) nas variáveis de ambiente, fora do repositório |
 
 O Databricks acrescenta um cabeçalho `environment_version = "6"` aos notebooks que executa. Ele registra a versão do ambiente que funcionou e pode ir para o GitHub.
 
@@ -83,7 +96,7 @@ O texto do livro inteiro foi extraído sem perdas e passou em todas as verifica�
 
 - Normalização de acentos (NFC), para que "Fëanor" codificado de formas diferentes seja a mesma palavra.
 - Conversão de ligaduras: o PDF usa caracteres como `ﬁ` (U+FB01), que parecem "fi" na tela mas fariam "ﬁlhos" e "filhos" serem palavras diferentes na busca. O teste curto achou 55 ocorrências em 24 páginas.
-- Junção de palavras hifenizadas na quebra de linha.
+- Junção de palavras partidas no fim da linha, com hífen comum ou tipográfico e espaços soltos em volta da quebra; o hífen invisível (*soft hyphen*) é removido. Se a continuação começa com maiúscula, é um nome composto e o hífen fica ("Tol-in-Gaurhoth"); se começa com minúscula, são sílabas e o hífen sai ("Ercha-mion" vira "Erchamion").
 - Remoção de linhas que são só número de página.
 
 **Resultado no livro inteiro**
@@ -91,18 +104,21 @@ O texto do livro inteiro foi extraído sem perdas e passou em todas as verifica�
 | Verificação | Resultado |
 | --- | --- |
 | Páginas sem texto | 18 de 1.020 (2%); limite 10% |
-| Total de palavras | 150.596; mínimo 80.000 |
+| Total de palavras | 150.611; mínimo 80.000 |
 | Termos-âncora | 8 de 8 encontrados (Fëanor, Silmaril, Morgoth, Valinor, Beleriand, Lúthien, Túrin, Gondolin) |
 | Caracteres corrompidos | 0 depois da conversão de ligaduras |
+| Palavras grudadas (estimativa) | 25 (0,017%); limite 0,1% |
 | Cabeçalho ou rodapé repetido | nenhum |
 | Sumário | páginas 5 a 8 |
 | Capítulos pelo regex | 36, sem duplicatas |
 
 Com o `CHAPTER_REGEX` definido, o 02 lista exatamente os títulos que o chunking vai usar. Sem ele, mostra linhas candidatas a título para ajudar a escrever o regex.
 
+**Extrator do PDF e palavras grudadas.** O 02 permite escolher o extrator (`pypdf`, `pypdf_layout` ou `pymupdf`) e compara os três numa amostra de 60 páginas. Os três deram o mesmo resultado (cerca de 8.740 palavras e as mesmas 3 palavras grudadas), então o `pypdf` ficou. As palavras grudadas já estão no texto embutido do PDF e são de três tipos: espaço faltando ("porTurgon", "deEglarest"), erro de reconhecimento de texto ("entaIhadas", com I no lugar de l) e texto que não é do livro ("eLivros", "eLivross"), acrescentado ao arquivo de origem. Nenhum extrator resolve esses casos; uma lista de correções conhecidas fica como pendência.
+
 ## Chunking (notebook 03)
 
-O livro virou 529 chunks em 36 capítulos, sem nenhuma palavra perdida: 150.194 de 150.194. Cada chunk tem cerca de 350 palavras, com 60 de sobreposição, nunca atravessa dois capítulos e leva o nome do capítulo no início do texto.
+O livro virou 529 chunks em 36 capítulos, sem nenhuma palavra perdida: 150.209 de 150.209. Cada chunk tem cerca de 350 palavras, com 60 de sobreposição, nunca atravessa dois capítulos e leva o nome do capítulo no início do texto.
 
 **Como os títulos são reconhecidos**
 
@@ -130,13 +146,13 @@ O `CHAPTER_REGEX` foi montado a partir do próprio PDF e cobre as quatro estrutu
 
 ## Índice e cadeia RAG (notebooks 04 e 05)
 
-A cadeia responde certo e com citação quando o trecho certo é recuperado, e recusa em vez de inventar quando não é. A única falha até agora é uma pergunta que exige juntar três capítulos.
+A cadeia responde certo e com citação quando o trecho certo é recuperado, e recusa em vez de inventar quando não é. A falha que persiste é a das perguntas que exigem juntar vários capítulos.
 
 **Como funciona**
 
-O 04 cria um índice Delta Sync sobre a tabela `chunks`, com os embeddings calculados pelo Databricks, e confere que o índice tem as mesmas linhas da tabela e que cada chunk é encontrado buscando um trecho do próprio texto. O 05 busca os 5 trechos mais relevantes (busca híbrida: vetorial mais palavra-chave), monta o prompt com eles identificados como `[c00042]` e chama o LLM com três regras: usar só os trechos, citar e recusar com a frase "Não encontrei isso nos trechos recuperados" quando faltar a resposta. Cada pergunta fica registrada no MLflow Tracing.
+O 04 cria um índice Delta Sync sobre a tabela `chunks`, com os embeddings calculados pelo Databricks. O 05 busca os trechos mais relevantes (busca híbrida: vetorial mais palavra-chave), monta o prompt com eles identificados como `[c00042]` e chama o LLM com as regras do prompt: usar só os trechos, citar e recusar com a frase "Não encontrei isso nos trechos recuperados" quando faltar a resposta. Cada pergunta fica registrada no MLflow Tracing.
 
-**Resultados**
+**Resultados das primeiras perguntas**
 
 | Pergunta | Teste (p. 153 a 176) | Livro inteiro |
 | --- | --- | --- |
@@ -149,7 +165,50 @@ No teste, o trace do MLflow confirmou que o trecho `c00002` (página 158, capít
 
 **Por que a pergunta sobre Lúthien e Elrond falhou**
 
-A resposta está espalhada em três capítulos: Lúthien é mãe de Dior (cap. XIX), Dior é pai de Elwing (cap. XXII) e Elwing é mãe de Elrond (cap. XXIV). Os 5 trechos mais parecidos com a pergunta inteira não ligam as duas pontas. O modelo recusou em vez de inventar, o que é o comportamento seguro, mas é uma falha de recuperação que o notebook 06 vai medir na categoria `multi_hop`.
+A resposta está espalhada em três capítulos: Lúthien é mãe de Dior (cap. XIX), Dior é pai de Elwing (cap. XXII) e Elwing é mãe de Elrond (cap. XXIV). Os 5 trechos recuperados vieram todos do capítulo XIX e não ligam as duas pontas. O modelo recusou em vez de inventar, o que é o comportamento seguro, mas é uma falha de recuperação, medida no 06 na categoria `multi_hop`.
+
+**Verificações do índice.** Além de contar as linhas, o 04 compara, nos chunks sorteados, o texto guardado no índice com o da tabela. A contagem sozinha não percebia quando só o texto mudou, como depois de uma limpeza nova. O teste de busca usa 100 palavras do próprio chunk: com 15 palavras ele falhava sem haver problema, porque trechos de um mesmo capítulo dividem nomes e vocabulário (o caso do `c00300`, com uma frase sobre orcs na estrada).
+
+**Consistência: os anéis de poder.** Duas perguntas parecidas deram respostas incompatíveis. "Quem criou os anéis de poder?" foi respondida certo (os artífices de Ost-in-Edhil, sob a orientação de Sauron; os Três, só Celebrimbor). "Quem criou os 9 anéis dados aos homens?" teve como resposta "Sauron criou", citando um trecho que não diz isso. O trecho certo estava no contexto e diz que Sauron *deu* os Nove aos homens e *participou* da confecção: o modelo transformou "participou" e "deu" em "criou". Isso motivou o prompt v2 e duas perguntas novas no gabarito, na categoria `consistencia`. Com o v2, a resposta virou uma recusa: não inventa, mas ainda não aproveita a parte que o trecho responde.
+
+## Aplicação no terminal
+
+`app/perguntar.py` responde no terminal do computador usando o índice e o LLM do Databricks, com a configuração escolhida na avaliação, e lista as fontes citadas com capítulo e página. Aceita uma pergunta direto no comando ou um modo interativo.
+
+| Opção | O que faz |
+| --- | --- |
+| `--trechos` / `--completo` | Mostra o começo ou o texto inteiro dos trechos recuperados |
+| `--prompt v1` | Usa outra versão do prompt da resposta |
+| `--estrategia diversa` | Usa outra estratégia de busca |
+| `--mlflow` | Registra cada pergunta nos traces do experimento |
+
+As credenciais ficam fora do repositório, em variáveis de ambiente (`DATABRICKS_HOST` e `DATABRICKS_TOKEN`) ou em `~/.databrickscfg`; o `.gitignore` bloqueia `.env`, `.databrickscfg` e arquivos com "token" no nome. Um token que aparecer em qualquer conversa ou arquivo compartilhado deve ser revogado.
+
+## Avaliação
+
+O 06 mede a busca pela página da resposta, em 150 perguntas sintéticas geradas pelo 06a e nas perguntas manuais, e a resposta com juízes LLM numa amostra de 60. Os detalhes e gráficos estão em [metricas.md](metricas.md).
+
+| Comparação | Resultado |
+| --- | --- |
+| Busca | `hybrid_k5` acerta a página em 91% das perguntas, contra 85% da vetorial com 5 trechos e 81% com 3 |
+| Prompt | v2 com correção 0,80 contra 0,73 do v1, e recusa indevida de 3% contra 5%; ficou o v2 |
+| LLM sem contexto | 0,5 de correção, contra cerca de 0,72 a 0,80 do RAG |
+| Ruído dos juízes | Com os mesmos trechos, a suficiência variou 5 pontos entre rodadas: diferenças menores que isso não decidem nada |
+
+Dos 10 casos em que os trechos bastavam e a resposta saiu errada, 7 eram problemas do gabarito sintético (perguntas com mais de uma resposta certa ou vagas) ou do juiz, e só 3 do RAG.
+
+## Estratégias de busca
+
+Três estratégias novas estão implementadas como opções, ao lado da atual, e o 06 já está configurado para compará-las com a `hybrid_k5` e o prompt v2. Ainda não foram avaliadas.
+
+| Estratégia | Como funciona | Que problema ataca |
+| --- | --- | --- |
+| `simples` (atual) | Os 5 trechos mais parecidos com a pergunta | — |
+| `vizinhos` | Os 5, mais o trecho anterior e o seguinte dos 2 primeiros, do mesmo capítulo | Resposta que continua no trecho ao lado, como nos anéis de poder |
+| `diversa` | Dos 20 melhores, 5 com no máximo 2 por capítulo | Um capítulo ocupando todos os lugares, como em Lúthien e Elrond |
+| `por_nome` | Uma busca por nome próprio da pergunta, intercalada com a da pergunta inteira | Um nome que domina a busca e apaga o outro |
+
+A `vizinhos` manda até 9 trechos, por isso o 06 também mede as palavras de contexto por pergunta (`context_words`). Quase todo o gabarito é de perguntas de um trecho só: esta comparação mostra se alguma estratégia atrapalha essas perguntas, mas o ganho nas de vários saltos só vai ser medido com perguntas sintéticas de dois trechos, ainda pendentes.
 
 ## Verificações automáticas e modo de teste
 
@@ -158,11 +217,12 @@ Cada notebook termina com um resumo de verificações. **ERRO** para a execuçã
 | Notebook | O que verifica |
 | --- | --- |
 | 01 Setup | Modelos de embedding e LLM existem no workspace |
-| 02 Ingestão | PDF no Volume (lista os arquivos se não achar); páginas sem texto; total de palavras; termos-âncora; caracteres corrompidos, com o código de cada um; cabeçalho repetido, com o padrão sugerido para remover; títulos e capítulos (só AVISO) |
+| 02 Ingestão | PDF no Volume (lista os arquivos se não achar); páginas sem texto; total de palavras; termos-âncora; caracteres corrompidos, com o código de cada um; palavras grudadas; cabeçalho repetido, com o padrão sugerido para remover; títulos e capítulos (só AVISO) |
 | 03 Chunking | Número de capítulos; títulos duplicados; linhas longas que batem no regex; capítulos pequenos ou dominantes; chunks curtos; nenhuma palavra perdida |
-| 04 Índice | Linhas no índice = linhas na tabela; auto-recuperação de chunks sorteados |
+| 04 Índice | Linhas no índice = linhas na tabela; texto do índice igual ao da tabela nos chunks sorteados; auto-recuperação com 100 palavras |
 | 05 RAG | Citações da resposta estão entre os trechos recuperados |
-| 06 Avaliação | Gabarito bem formado; termos esperados existem no texto da edição; juiz LLM responde |
+| 06a Gabarito | Modelo gerador existe; mínimo de perguntas aprovadas; descartes por motivo; taxa de erro da revisão humana |
+| 06 Avaliação | Gabarito bem formado; termos esperados existem no texto (pergunta sintética cujo termo sumiu sai com AVISO); juiz LLM responde; nenhuma resposta deixou de ser gerada |
 | 07 Contrafactual | Fato falso ausente do contexto original; índice reflete a troca antes da pergunta; restauração confirmada |
 
 **Modo de teste**
@@ -173,34 +233,42 @@ Com `PAGE_RANGE = (153, 176)` no `00_config`, o fluxo processa só essas página
 
 | Decisão | Por quê |
 | --- | --- |
-| Repositório público só com código | O livro tem direitos autorais; PDF, chunks e saídas ficam no Databricks, e os notebooks em `.py` não guardam saídas |
+| Repositório público só com código | O livro tem direitos autorais; PDF, chunks, gabarito sintético e saídas ficam no Databricks, e os notebooks em `.py` não guardam saídas |
 | Nome RAGMarillion, com dois L | Escolha do autor; o nome antigo foi trocado em todo o código, no GitHub e na pasta local |
 | Verificações com dois níveis (ERRO e AVISO) | Parar só quando seguir adiante geraria dados errados sem ninguém perceber |
-| Modo de teste com tabelas `_teste` separadas | Ajustar o regex por tentativa e erro sem apagar o índice do livro inteiro, que leva minutos para recriar |
+| Modo de teste com tabelas `_teste` separadas | Ajustar o regex por tentativa e erro sem apagar o índice do livro inteiro |
 | `databricks-ai-search` em vez de `databricks-vectorsearch` | O pacote antigo quebra o ambiente Serverless v6 |
-| Subtítulos da Valaquenta como capítulos próprios | Cada seção trata de um grupo diferente (Valar, Maiar, Inimigos), e as citações ficam mais precisas |
-| Material de apoio (Glossário, Genealogias etc.) como capítulos próprios | O Glossário ajuda nos apelidos; separado, não é citado como se fosse a história. Excluir parte dele fica para depois da avaliação |
-| Fato falso do contrafactual: "Eöl" em vez de "Maglor" | Maglor é filho de Fëanor e pode aparecer na resposta por outro motivo, o que confundiria a métrica; o 07 também verifica que o fato falso não está no contexto original |
-| Escolher o chunking por métrica definida antes da ablação | Evita apresentar qualquer configuração como vencedora depois de ver os resultados |
+| Subtítulos da Valaquenta e material de apoio como capítulos próprios | Citações mais precisas; o Glossário não é citado como se fosse a história. Excluir parte dele fica para a avaliação |
+| Avaliar antes de mudar a busca (caminho "medir antes") | Escolher por métrica agregada, e não por um caso isolado, evita ajustar o sistema a perguntas específicas |
+| Busca medida pela página, não pelo chunk | A mesma marcação do gabarito vale para qualquer chunking, e o texto pode ser limpo de novo sem refazer o gabarito |
+| Gabarito sintético no Databricks, com divisão fixa em `dev` e `test` | O texto vem do livro; o `test` só confirma uma escolha feita no `dev`. Perguntas criadas a partir de casos analisados ficam no `dev` |
+| `hybrid_k5` como busca padrão | Melhor Recall@5 (0,913 contra 0,847 da vetorial), com a mesma quantidade de texto |
+| Prompt v2 como padrão | Correção igual ou melhor que a do v1, sem aumentar as recusas indevidas; o v1 continua disponível para comparar |
+| Extrator `pypdf` | Os três extratores testados deram o mesmo texto |
+| Falha de chamada contada como ERRO, não como resposta errada | Na primeira avaliação, falhas por limite de chamadas viraram uma correção falsa de 0,317 |
+| Fato falso do contrafactual: "Eöl" em vez de "Maglor" | Maglor é filho de Fëanor e pode aparecer na resposta por outro motivo; o 07 também verifica que o fato falso não está no contexto original |
 
 ## Pendências e próximos passos
 
-O próximo marco é medir a qualidade de forma sistemática: hoje há só 4 perguntas de teste, e o gabarito tem 11. A ordem abaixo vai do que destrava mais ao que depende dos anteriores.
+O próximo marco é comparar as estratégias de busca e medir as perguntas de vários saltos, que continuam falhando. O maior ruído da avaliação hoje está no gabarito sintético, não no RAG.
 
-- [ ] Rodar o 04 do livro inteiro e confirmar o resumo (529 linhas no índice, auto-recuperação).
-- [ ] Inspecionado: os 5 trechos recuperados para Lúthien e Elrond vieram todos do capítulo XIX. Diagnóstico e caminhos em [discussao-avaliacao.md](discussao-avaliacao.md).
-- [ ] Rodar o 06 com o gabarito atual, como linha de base (hit@k, MRR, recusa, Correctness e RetrievalGroundedness).
-- [ ] Ampliar o gabarito para cerca de 60 perguntas, balanceadas por categoria, com `evidence_pages` (páginas do PDF onde está cada resposta) e divisão em desenvolvimento e teste.
-- [ ] Acrescentar ao 06 recall@k e precisão por página, o volume de contexto e um intervalo de confiança pareado entre configurações.
-- [ ] Definir a regra de decisão antes da ablação (ex.: maior Correctness com Groundedness ≥ 0,8, recusa ≥ 0,9 e contexto ≤ 1.400 palavras).
-- [ ] Criar o notebook 08 de ablação: tamanho do chunk (200, 350, 500), sobreposição (0, 60, 120) e nome do capítulo no texto, com o mesmo volume de contexto.
-- [ ] Atacar as perguntas de vários saltos: `TOP_K` maior, busca em etapas ou uso do Glossário.
+- [x] Rodar o 04 do livro inteiro e confirmar o resumo.
+- [x] Inspecionar os trechos recuperados para Lúthien e Elrond: todos do capítulo XIX.
+- [x] Rodar o 06 como linha de base; gabarito sintético (06a) e métricas de busca por página.
+- [x] Comparar prompts v1 e v2: ficou o v2.
+- [x] Aplicação de terminal.
+- [ ] Rodar o 06 com as estratégias de busca (`simples`, `vizinhos`, `diversa`, `por_nome`).
+- [ ] Gerar perguntas sintéticas de dois trechos e medir o recall completo, para avaliar as perguntas de vários saltos.
+- [ ] Melhorar o prompt do 06a para exigir uma única resposta no livro inteiro e descartar perguntas vagas; regerar e revisar.
+- [ ] Revisar a amostra de 30 perguntas sintéticas e registrar a taxa de erro do gabarito.
+- [ ] Ampliar a amostra dos juízes (60 hoje) para reduzir o ruído.
 - [ ] Rodar o 07 (contrafactual) no livro inteiro.
-- [ ] Montar um Job no Databricks com o fluxo 02 → 03 → 04 → 05 → 06, com gatilho manual.
+- [ ] Revogar o token que ficou exposto na sessão de configuração da aplicação e manter o novo só nas variáveis de ambiente.
 
 **Em aberto**
 
-- Excluir Genealogias, Nota sobre a pronúncia e Mapas do índice? Decidir com os números do 06.
-- O índice e as tabelas do modo de teste (`_teste`) podem ser apagados quando não forem mais úteis.
+- Excluir o Glossário, as Genealogias, a Nota sobre a pronúncia e os Mapas do índice? O Glossário já apareceu como ruído na busca dos anéis de poder; decidir com os números do 06.
+- Uma lista de correções de texto conhecidas ("eLivross" → "exilados", "entaIhadas" → "entalhadas"), conferida no PDF antes de aplicar.
+- O índice e as tabelas do modo de teste (`_teste`) podem ser apagados.
 
-A discussão sobre como avaliar a recuperação, o risco de overfitting e por que usar um RAG está em [discussao-avaliacao.md](discussao-avaliacao.md).
+A discussão sobre como avaliar a recuperação, o risco de overfitting e por que usar um RAG está em [discussao-avaliacao.md](discussao-avaliacao.md); as métricas e os resultados da avaliação, em [metricas.md](metricas.md).

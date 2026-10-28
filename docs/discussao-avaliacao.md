@@ -1,6 +1,6 @@
 # Discussão: como avaliar o RAG
 
-Atualizado em 24/10/2026 · velosomn
+Atualizado em 28/10/2026 · velosomn
 
 A falha na pergunta sobre Lúthien e Elrond levou a quatro conclusões sobre como evoluir o RAG sem perseguir casos isolados:
 
@@ -107,17 +107,21 @@ Neste livro, um LLM sozinho já responderia bem à maioria das perguntas. O Silm
 
 ## Decisões e próximos passos
 
-Nenhuma mudança na busca foi feita: a pergunta sobre Lúthien e Elrond continua sendo recusada. Está em aberto qual caminho seguir.
+Foi escolhido o caminho A, "medir antes", e ele já foi feito: o gabarito sintético, as métricas por página, os juízes e a linha de base sem contexto rodaram em 24/10. As estratégias de busca foram implementadas depois, em 28/10, como opções comparáveis; a pergunta sobre Lúthien e Elrond só deve melhorar com elas, e isso ainda não foi medido.
 
 | Caminho | O que inclui | Prós e contras |
 | --- | --- | --- |
 | A. Medir antes | Gerar as perguntas sintéticas; acrescentar ao 06 Recall@k, nDCG, o juiz `RetrievalSufficiency` e a linha de base sem contexto; depois implementar as estratégias como opções comparáveis | Escolha sólida, sem overfitting; a pergunta da Lúthien só melhora depois de tudo isso |
 | B. Implementar já, decidir depois | Criar `diversa`, `por_nome` e `em_etapas` no `00_config`, com o padrão `simples`, e testar a pergunta da Lúthien com cada uma | Mostra logo se alguma resolve o caso; a escolha definitiva continua sendo pela métrica |
 
-Nos dois caminhos, nenhuma estratégia vira padrão por ter acertado uma pergunta isolada.
+Nos dois caminhos, nenhuma estratégia vira padrão por ter acertado uma pergunta isolada. A avaliação também mostrou que, hoje, o maior ruído está no gabarito sintético: dos 10 casos em que os trechos bastavam e a resposta saiu errada, 7 eram perguntas com mais de uma resposta certa, perguntas vagas ou rigidez do juiz.
 
-- [ ] Escolher entre os caminhos A e B.
-- [ ] Criar o notebook `06a_gerar_gabarito` (sorteio, geração, filtros, tabela no Databricks, amostra para revisão).
+- [x] Escolher entre os caminhos A e B: foi o A.
+- [x] Criar o notebook `06a_gerar_gabarito` (sorteio, geração, filtros, tabela no Databricks, amostra para revisão).
 - [ ] Revisar cerca de 30 perguntas sintéticas e registrar a taxa de erro.
-- [ ] Acrescentar ao 06 Recall@k, Recall completo@k, nDCG@k, `RetrievalSufficiency` e a linha de base sem contexto.
+- [x] Acrescentar ao 06 Recall@k, nDCG@k, `RetrievalSufficiency` e a linha de base sem contexto.
+- [ ] Recall completo@k, que depende das perguntas sintéticas de dois trechos.
 - [ ] Escrever a regra de decisão no `00_config` antes de comparar estratégias e chunkings.
+- [x] Implementar as estratégias `vizinhos`, `diversa` e `por_nome` como opções; falta avaliá-las.
+
+Os resultados da avaliação estão em [metricas.md](metricas.md).
