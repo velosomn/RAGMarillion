@@ -7,7 +7,8 @@
 # MAGIC |---|---|---|
 # MAGIC | Recuperação | Recall@k, MRR, nDCG@k, Precisão@k | Pela **página**: o trecho buscado cobre a página onde está a resposta? Vale para qualquer chunking. Só nas perguntas com `evidence_pages` (as sintéticas, do 06a) |
 # MAGIC | Recuperação (aproximação) | hit@k por termos | Algum trecho contém um termo esperado? Vale para o gabarito manual, que ainda não tem páginas |
-# MAGIC | Recusa | Taxa de recusa | Nas perguntas sem resposta no livro |
+# MAGIC | Recusa | Taxa de recusa | Nas perguntas sem resposta no livro (quanto maior, melhor) |
+# MAGIC | Recusa indevida | `false_refusal_rate` | Nas perguntas com resposta da amostra dos juízes (quanto menor, melhor): o custo de um prompt cauteloso |
 # MAGIC | Resposta | Correctness, RetrievalGroundedness, RetrievalSufficiency (juízes LLM) | Numa amostra de `EVAL_JUDGE_SAMPLE` perguntas, por custo |
 # MAGIC
 # MAGIC **Gabarito:** o manual (`data/eval_questions.jsonl`) mais o sintético (`SYNTH_TABLE`, gerado no 06a).
@@ -169,16 +170,25 @@ def retry(fn, *args):
     return call_with_retries(fn, *args, tries=EVAL_TRIES, wait_s=EVAL_RETRY_WAIT_S)
 
 
-def resilient(fn, failures: list):
+def resilient(fn, failures: list, answers: list | None = None):
     """predict_fn com novas tentativas; o que falhar mesmo assim é contado em `failures`,
-    para a média dos juízes não tratar uma chamada que falhou como resposta errada sem aviso."""
+    para a média dos juízes não tratar uma chamada que falhou como resposta errada sem aviso.
+    As respostas geradas vão para `answers`, para contar recusas."""
     def predict(question):
         try:
-            return retry(fn, question)
+            out = retry(fn, question)
         except Exception as e:
             failures.append(f"{type(e).__name__}: {e}"[:200])
             raise
+        if answers is not None:
+            answers.append(out)
+        return out
     return predict
+
+
+def false_refusal_rate(answers: list[str]) -> float:
+    """Fração de perguntas COM resposta no livro em que o modelo recusou: o custo de um prompt cauteloso."""
+    return sum(REFUSAL_TEXT.lower() in (a or "").lower() for a in answers) / len(answers) if answers else 0.0
 
 
 def run_config(name: str, top_k: int, query_type: str, prompt: str = DEFAULT_PROMPT):
@@ -212,13 +222,14 @@ def run_config(name: str, top_k: int, query_type: str, prompt: str = DEFAULT_PRO
         mlflow.log_metrics(metrics)
 
         # 2) Resposta: juízes LLM na amostra
-        jm = {}
+        jm, answers = {}, []
         if sample:
             result = mlflow.genai.evaluate(data=as_eval_data(sample),
-                                           predict_fn=resilient(rag.answer, failures), scorers=judges())
+                                           predict_fn=resilient(rag.answer, failures, answers), scorers=judges())
             jm = judged(result)
+            jm["false_refusal_rate"] = false_refusal_rate(answers)
             jm["n_failed_answers"] = len(failures)
-            mlflow.log_metric("n_failed_answers", len(failures))
+            mlflow.log_metrics({"false_refusal_rate": jm["false_refusal_rate"], "n_failed_answers": len(failures)})
     return df, metrics, jm
 
 
