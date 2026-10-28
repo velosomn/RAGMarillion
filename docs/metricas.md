@@ -156,6 +156,6 @@ Nas perguntas manuais, mais famosas, a diferença deve ser menor; com 5 delas, n
 - [ ] Gerar as perguntas sintéticas de dois trechos e acrescentar o recall completo.
 - [ ] Avaliar as estratégias de busca (`vizinhos`, `diversa`, `por_nome`), já implementadas, comparando também `context_words`.
 - [ ] Ampliar a amostra dos juízes para reduzir o ruído.
-- [ ] Corrigir a ordem do Job: o `evaluate` deve depender do `Gabarito`.
+- [x] Corrigir a ordem do Job: o `evaluate` depende do `Gabarito`.
 
 O andamento geral do projeto está em [progresso.md](progresso.md), e o raciocínio por trás desta avaliação, em [discussao-avaliacao.md](discussao-avaliacao.md).
