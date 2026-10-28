@@ -34,3 +34,8 @@ def test_excerpt():
     assert excerpt("[CAPÍTULO VII] Naquela  época\nforam feitas") == "Naquela época foram feitas"
     long = excerpt("[X] " + "palavra " * 100, max_chars=30)
     assert long.endswith("…") and len(long) <= 31
+
+
+def test_excerpt_full_text():
+    text = "[X] " + "palavra " * 100
+    assert excerpt(text, None) == ("palavra " * 100).strip()

@@ -2,7 +2,8 @@
 
     python app/perguntar.py "Quem forjou as Silmarils?"
     python app/perguntar.py                 # modo interativo
-    python app/perguntar.py --trechos       # mostra também os trechos recuperados
+    python app/perguntar.py --trechos       # mostra também o começo dos trechos recuperados
+    python app/perguntar.py --completo      # mostra os trechos recuperados inteiros
 
 Usa o índice e o LLM que já estão no Databricks. Credenciais: DATABRICKS_HOST e
 DATABRICKS_TOKEN no ambiente, ou um perfil em ~/.databrickscfg (fora do repositório).
@@ -43,7 +44,8 @@ O token pessoal se cria no Databricks em Settings > Developer > Access tokens.""
 def parse_args(argv=None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Pergunte sobre O Silmarillion.")
     p.add_argument("pergunta", nargs="*", help="a pergunta; sem ela, abre o modo interativo")
-    p.add_argument("--trechos", action="store_true", help="mostra os trechos recuperados")
+    p.add_argument("--trechos", action="store_true", help="mostra o começo dos trechos recuperados")
+    p.add_argument("--completo", action="store_true", help="mostra os trechos recuperados inteiros")
     p.add_argument("--top-k", type=int, default=DEFAULTS["top_k"], help="trechos enviados ao LLM")
     p.add_argument("--busca", choices=["hybrid", "ann"], default=DEFAULTS["busca"], help="tipo de busca")
     p.add_argument("--endpoint", default=DEFAULTS["endpoint"], help="endpoint de busca")
@@ -71,7 +73,7 @@ def connect(args: argparse.Namespace):
     return RAGMarillion(index, args.llm, top_k=args.top_k, query_type=args.busca)
 
 
-def answer(rag, question: str, show_passages: bool) -> None:
+def answer(rag, question: str, show_passages: bool, full: bool = False) -> None:
     text = rag.answer(question)
     print(f"\n{text}")
     sources = format_sources(text, rag.last_docs)
@@ -79,10 +81,10 @@ def answer(rag, question: str, show_passages: bool) -> None:
         print("\nFontes:")
         for line in sources:
             print(f"  {line}")
-    if show_passages:
+    if show_passages or full:
         print("\nTrechos recuperados:")
         for d in rag.last_docs:
-            print(f"  [{d.id}] {d.metadata['chapter']}, {page_label(d.metadata)}\n    {excerpt(d.page_content)}")
+            print(f"  [{d.id}] {d.metadata['chapter']}, {page_label(d.metadata)}\n    {excerpt(d.page_content, None if full else 300)}")
 
 
 def main(argv=None) -> int:
@@ -105,7 +107,7 @@ def main(argv=None) -> int:
         return 1
 
     if args.pergunta:
-        answer(rag, " ".join(args.pergunta), args.trechos)
+        answer(rag, " ".join(args.pergunta), args.trechos, args.completo)
         return 0
 
     print("RAGMarillion · pergunte sobre O Silmarillion. Enter vazio ou 'sair' para encerrar.")
@@ -118,7 +120,7 @@ def main(argv=None) -> int:
         if not question or question.lower() in {"sair", "exit", "quit"}:
             break
         try:
-            answer(rag, question, args.trechos)
+            answer(rag, question, args.trechos, args.completo)
         except Exception as e:
             print(f"Erro: {type(e).__name__}: {e}")
     return 0

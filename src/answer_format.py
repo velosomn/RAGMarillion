@@ -34,7 +34,9 @@ def format_sources(answer: str, docs: list) -> list[str]:
     return lines
 
 
-def excerpt(text: str, max_chars: int = 300) -> str:
-    """Começo do trecho, sem o rótulo do capítulo e numa linha só."""
+def excerpt(text: str, max_chars: int | None = 300) -> str:
+    """Começo do trecho (ou ele inteiro, com max_chars=None), sem o rótulo do capítulo e numa linha só."""
     body = " ".join(_PREFIX.sub("", text, count=1).split())
-    return body if len(body) <= max_chars else body[:max_chars].rsplit(" ", 1)[0] + "…"
+    if max_chars is None or len(body) <= max_chars:
+        return body
+    return body[:max_chars].rsplit(" ", 1)[0] + "…"
