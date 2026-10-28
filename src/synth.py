@@ -11,6 +11,7 @@ import re
 import unicodedata
 
 from src.chunking import normalize_title
+from src.retrieval import proper_nouns
 
 SYSTEM_PROMPT = "Você cria perguntas de avaliação a partir de um trecho de livro."
 
@@ -62,18 +63,9 @@ def _fold(s: str) -> str:
     return unicodedata.normalize("NFC", s).casefold()
 
 
-# Palavras que começam perguntas com maiúscula sem serem nomes
-_QUESTION_STARTERS = {"quem", "qual", "quais", "onde", "quando", "como", "por", "porque", "que", "quanto",
-                      "quantos", "quantas", "o", "a", "os", "as", "um", "uma", "em", "de", "do", "da", "dos",
-                      "das", "no", "na", "nos", "nas", "para", "com", "segundo", "após", "depois", "antes",
-                      "durante", "ao", "aos", "à", "às", "e", "se", "há", "houve", "foi", "era", "existe"}
-
-
 def has_proper_noun(question: str) -> bool:
     """Alguma palavra com maiúscula que seja um nome (a primeira conta, se não for "Quem", "Onde"...)."""
-    words = _WORD.findall(question)
-    return any(w[0].isupper() and (i > 0 or w.casefold() not in _QUESTION_STARTERS)
-               for i, w in enumerate(words))
+    return bool(proper_nouns(question))
 
 
 def longest_shared_run(a: str, b: str) -> int:

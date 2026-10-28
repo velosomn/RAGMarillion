@@ -146,8 +146,18 @@ respondendo de memória) e registra no MLflow:
   `EVAL_JUDGE_SAMPLE` perguntas.
 
 Compare configurações com `EVAL_SPLIT = "dev"` e use `"test"` uma vez só, para confirmar a escolhida.
-Cada configuração em `CONFIGS` também escolhe a versão do prompt da resposta (`PROMPTS` em
-`src/retrieval.py`), para medir uma mudança de prompt do mesmo jeito que uma mudança de busca.
+Cada configuração em `CONFIGS` também escolhe a versão do prompt da resposta (`PROMPTS`) e a estratégia
+de busca (`STRATEGIES`, ambos em `src/retrieval.py`), para medir essas mudanças do mesmo jeito:
+
+| Estratégia | O que faz |
+|---|---|
+| `simples` | Os k trechos mais parecidos com a pergunta |
+| `vizinhos` | Os k, mais o trecho anterior e o seguinte dos 2 primeiros, do mesmo capítulo |
+| `diversa` | Dos 20 melhores, k com no máximo 2 por capítulo |
+| `por_nome` | Uma busca por nome próprio da pergunta, intercalada com a busca da pergunta inteira |
+
+Como algumas estratégias mandam mais texto ao LLM, a métrica `context_words` mostra quanto: compare
+acertos e tamanho do contexto juntos.
 Se os juízes padrão não estiverem disponíveis no Free Edition, defina `JUDGE_MODEL` no `00_config`
 com um endpoint do workspace. O raciocínio por trás dessa avaliação está em
 [docs/discussao-avaliacao.md](docs/discussao-avaliacao.md).
@@ -209,6 +219,7 @@ python app/perguntar.py            # modo interativo: Enter vazio ou 'sair' ence
 python app/perguntar.py --trechos  # mostra também o começo dos trechos recuperados
 python app/perguntar.py --completo # mostra os trechos recuperados inteiros
 python app/perguntar.py --prompt v1 "..."  # usa outra versão do prompt da resposta
+python app/perguntar.py --estrategia diversa "..."  # usa outra estratégia de busca
 ```
 
 **Credenciais.** Crie um token em **Settings > Developer > Access tokens** no Databricks e configure

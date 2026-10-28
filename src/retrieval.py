@@ -140,3 +140,85 @@ def page_scores(hits: list[tuple[int, int]], evidence_pages: list[int], k: int) 
         "ndcg": 1.0 / math.log2(1 + first) if first else 0.0,
         "precision": sum(rel) / k if k else 0.0,
     }
+
+
+# --- Estratégias de busca ------------------------------------------------------
+# Funções puras que escolhem e ordenam os trechos; quem chama o índice é src/rag.py.
+# Cada trecho ("hit") é um dict com chunk_id, chapter, page_start, page_end e text.
+
+STRATEGIES = ("simples", "vizinhos", "diversa", "por_nome")
+
+# Palavras que começam perguntas com maiúscula sem serem nomes
+QUESTION_STARTERS = {"quem", "qual", "quais", "onde", "quando", "como", "por", "porque", "que", "quanto",
+                     "quantos", "quantas", "o", "a", "os", "as", "um", "uma", "em", "de", "do", "da", "dos",
+                     "das", "no", "na", "nos", "nas", "para", "com", "segundo", "após", "depois", "antes",
+                     "durante", "ao", "aos", "à", "às", "e", "se", "há", "houve", "foi", "era", "existe"}
+_NAME_TOKEN = re.compile(r"[\w'-]+")
+
+
+def proper_nouns(question: str) -> list[str]:
+    """Nomes próprios da pergunta, juntando palavras seguidas com maiúscula ("Nirnaeth Arnoediad")."""
+    names, current = [], []
+    for i, token in enumerate(_NAME_TOKEN.findall(question)):
+        if token[:1].isupper() and not (i == 0 and token.casefold() in QUESTION_STARTERS):
+            current.append(token)
+        elif current:
+            names.append(" ".join(current))
+            current = []
+    if current:
+        names.append(" ".join(current))
+    return list(dict.fromkeys(names))
+
+
+def select_diverse(hits: list[dict], k: int, max_per_chapter: int = 2) -> list[dict]:
+    """Os k melhores, com no máximo `max_per_chapter` do mesmo capítulo; completa com o resto se faltar."""
+    chosen, per_chapter = [], {}
+    for h in hits:
+        if per_chapter.get(h["chapter"], 0) < max_per_chapter:
+            chosen.append(h)
+            per_chapter[h["chapter"]] = per_chapter.get(h["chapter"], 0) + 1
+        if len(chosen) == k:
+            return chosen
+    chosen_ids = {h["chunk_id"] for h in chosen}
+    return chosen + [h for h in hits if h["chunk_id"] not in chosen_ids][: k - len(chosen)]
+
+
+def round_robin(lists: list[list[dict]], k: int) -> list[dict]:
+    """Intercala várias listas de resultados (1º de cada, depois 2º de cada...) sem repetir, até k."""
+    out, seen = [], set()
+    for i in range(max((len(lst) for lst in lists), default=0)):
+        for lst in lists:
+            if i < len(lst) and lst[i]["chunk_id"] not in seen:
+                out.append(lst[i])
+                seen.add(lst[i]["chunk_id"])
+                if len(out) == k:
+                    return out
+    return out
+
+
+def neighbor_ids(chunk_id: str) -> list[str]:
+    """Ids do trecho anterior e do seguinte ("c00421" → "c00420", "c00422")."""
+    n = int(chunk_id[1:])
+    return [f"c{m:05d}" for m in (n - 1, n + 1) if m >= 0]
+
+
+def with_neighbors(hits: list[dict], neighbors: dict[str, dict], expand_top: int) -> list[dict]:
+    """Insere, em volta de cada um dos `expand_top` primeiros trechos, o anterior e o seguinte do mesmo
+    capítulo, na ordem do livro; os demais trechos seguem na ordem da busca, sem repetir."""
+    out, seen = [], set()
+
+    def add(h):
+        if h is not None and h["chunk_id"] not in seen:
+            out.append(h)
+            seen.add(h["chunk_id"])
+
+    for i, h in enumerate(hits):
+        if i < expand_top:
+            n = int(h["chunk_id"][1:])
+            prev, nxt = neighbors.get(f"c{n - 1:05d}"), neighbors.get(f"c{n + 1:05d}")
+            add(prev if prev and prev["chapter"] == h["chapter"] else None)
+            add(h)
+            add(nxt if nxt and nxt["chapter"] == h["chapter"] else None)
+        else:
+            add(h)
+    return out

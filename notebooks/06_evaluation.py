@@ -148,6 +148,8 @@ def judged(result) -> dict:
 def retrieval_summary(df: pd.DataFrame) -> dict:
     answerable = df[df.category != "unanswerable"]
     m = {"hit_terms": answerable["hit"].mean(), "mrr_terms": answerable["rr_terms"].mean()}
+    if "context_words" in df:
+        m["context_words"] = answerable["context_words"].mean()  # quanto texto vai ao LLM: compare junto
     if "recall" in df:
         paged = answerable[answerable["recall"].notna()]
         if len(paged):
@@ -191,8 +193,9 @@ def false_refusal_rate(answers: list[str]) -> float:
     return sum(REFUSAL_TEXT.lower() in (a or "").lower() for a in answers) / len(answers) if answers else 0.0
 
 
-def run_config(name: str, top_k: int, query_type: str, prompt: str = DEFAULT_PROMPT):
-    rag = RAGMarillion(index, LLM_ENDPOINT, top_k=top_k, query_type=query_type, prompt_version=prompt)
+def run_config(name: str, top_k: int, query_type: str, prompt: str = DEFAULT_PROMPT, strategy: str = "simples"):
+    rag = RAGMarillion(index, LLM_ENDPOINT, top_k=top_k, query_type=query_type, prompt_version=prompt,
+                       strategy=strategy)
     rows, failures = [], []
     with mlflow.start_run(run_name=name):
         mlflow.set_tags({**MODE_TAGS, "split": EVAL_SPLIT, "tipo": "rag"})
@@ -200,7 +203,7 @@ def run_config(name: str, top_k: int, query_type: str, prompt: str = DEFAULT_PRO
             "top_k": top_k, "query_type": query_type, "embedding": EMBEDDING_ENDPOINT,
             "llm": LLM_ENDPOINT, "chunk_size": CHUNK_SIZE_WORDS, "overlap": CHUNK_OVERLAP_WORDS,
             "prepend_chapter": PREPEND_CHAPTER, "n_questions": len(eval_set), "n_judged": len(sample),
-            "prompt_version": prompt,
+            "prompt_version": prompt, "strategy": strategy,
         })
 
         # 1) Recuperação e recusa: todas as perguntas, sem juiz
@@ -213,9 +216,11 @@ def run_config(name: str, top_k: int, query_type: str, prompt: str = DEFAULT_PRO
                 hits = [{"text": d.page_content} for d in docs]
                 row["hit"] = hit_at_k(hits, e["expected_terms"])
                 row["rr_terms"] = reciprocal_rank(hits, e["expected_terms"])
+                # algumas estratégias mandam mais que top_k trechos: as métricas usam todos os enviados
+                row["context_words"] = sum(len(d.page_content.split()) for d in docs)
                 if e.get("evidence_pages"):
                     pages = [(int(d.metadata["page_start"]), int(d.metadata["page_end"])) for d in docs]
-                    row.update(page_scores(pages, list(e["evidence_pages"]), top_k))
+                    row.update(page_scores(pages, list(e["evidence_pages"]), len(pages)))
             rows.append(row)
         df = pd.DataFrame(rows)
         metrics = retrieval_summary(df)
@@ -246,21 +251,24 @@ def run_closed_book():
 
 # COMMAND ----------
 
-# Configurações a comparar: (nome, trechos, busca, versão do prompt em src/retrieval.py).
-# Agora: o prompt v1 contra o v2 na configuração escolhida. A ablação da busca já rodou:
-#   ("ann_k3", 3, "ann", "v1"), ("ann_k5", 5, "ann", "v1"), ("hybrid_k5", 5, "hybrid", "v1")
+# Configurações a comparar: (nome, trechos, busca, prompt, estratégia de busca).
+# Prompts em PROMPTS e estratégias em STRATEGIES (src/retrieval.py). Já rodaram:
+#   busca: ann_k3, ann_k5, hybrid_k5 (venceu a hybrid_k5); prompt: v1 × v2 (ficou a v2)
+# Agora: as estratégias de busca, todas com hybrid_k5 e prompt v2.
 CONFIGS = [
-    ("hybrid_k5_v1", 5, "hybrid", "v1"),
-    ("hybrid_k5_v2", 5, "hybrid", "v2"),
+    ("v2_simples", 5, "hybrid", "v2", "simples"),
+    ("v2_vizinhos", 5, "hybrid", "v2", "vizinhos"),
+    ("v2_diversa", 5, "hybrid", "v2", "diversa"),
+    ("v2_por_nome", 5, "hybrid", "v2", "por_nome"),
 ]
 RUN_CLOSED_BOOK = False  # a linha de base sem contexto não depende do prompt; já foi medida
 EVAL_PAUSE_S = 60   # pausa entre configurações, para não estourar o limite de chamadas do Free Edition
 
 results = {}
-for i, (name, k, qt, prompt) in enumerate(CONFIGS):
+for i, (name, k, qt, prompt, strategy) in enumerate(CONFIGS):
     if i:
         time.sleep(EVAL_PAUSE_S)
-    results[name] = run_config(name, k, qt, prompt)
+    results[name] = run_config(name, k, qt, prompt, strategy)
 closed_book = {}
 if RUN_CLOSED_BOOK and sample:
     if CONFIGS:

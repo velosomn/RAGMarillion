@@ -19,7 +19,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src.answer_format import excerpt, format_sources, page_label  # noqa: E402
-from src.retrieval import DEFAULT_PROMPT, PROMPTS  # noqa: E402
+from src.retrieval import DEFAULT_PROMPT, PROMPTS, STRATEGIES  # noqa: E402
 
 # Os mesmos nomes do 00_config, com a configuração escolhida na avaliação (hybrid, 5 trechos)
 DEFAULTS = {
@@ -53,6 +53,7 @@ def parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--indice", default=DEFAULTS["indice"], help="índice de busca")
     p.add_argument("--llm", default=DEFAULTS["llm"], help="endpoint do LLM")
     p.add_argument("--prompt", choices=sorted(PROMPTS), default=DEFAULT_PROMPT, help="versão do prompt da resposta")
+    p.add_argument("--estrategia", choices=STRATEGIES, default="simples", help="estratégia de busca")
     p.add_argument("--mlflow", action="store_true", help="registra cada pergunta no experimento do MLflow")
     return p.parse_args(argv)
 
@@ -72,7 +73,8 @@ def connect(args: argparse.Namespace):
     host, token = os.environ.get("DATABRICKS_HOST"), os.environ.get("DATABRICKS_TOKEN")
     creds = {"workspace_url": host.rstrip("/"), "personal_access_token": token} if host and token else {}
     index = AISearchClient(disable_notice=True, **creds).get_index(args.endpoint, args.indice)
-    return RAGMarillion(index, args.llm, top_k=args.top_k, query_type=args.busca, prompt_version=args.prompt)
+    return RAGMarillion(index, args.llm, top_k=args.top_k, query_type=args.busca, prompt_version=args.prompt,
+                        strategy=args.estrategia)
 
 
 def answer(rag, question: str, show_passages: bool, full: bool = False) -> None:
