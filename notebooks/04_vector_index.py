@@ -23,7 +23,7 @@ import os, sys
 sys.path.append(os.path.abspath(".."))
 from databricks.ai_search.client import AISearchClient
 from src import checks
-from src.retrieval import indexed_row_count, parse_search_result, wait_until
+from src.retrieval import distinctive_query, indexed_row_count, parse_search_result, wait_until
 
 vsc = AISearchClient(disable_notice=True)
 existing = [i["name"] for i in vsc.list_indexes(VS_ENDPOINT).get("vector_indexes", [])]
@@ -56,7 +56,7 @@ index.wait_until_ready(verbose=True)
 # MAGIC %md
 # MAGIC ### Verificações
 # MAGIC 1. O índice tem o mesmo número de linhas que a tabela de chunks.
-# MAGIC 2. **Auto-recuperação:** buscar um trecho do meio de um chunk precisa devolver esse mesmo chunk.
+# MAGIC 2. **Auto-recuperação:** buscar um trecho distintivo de um chunk (o de mais nomes próprios, longe das bordas que ele divide com os vizinhos) precisa devolver esse mesmo chunk.
 # MAGIC    Pega índice desatualizado (o texto mudou e o sync não terminou) ou modelo de embedding errado.
 
 # COMMAND ----------
@@ -70,9 +70,8 @@ sample = (spark.table(CHUNKS_TABLE).orderBy(F.rand(seed=42)).limit(SMOKE_SAMPLES
           .select("chunk_id", "text").collect())
 hits = []
 for r in sample:
-    words = r.text.split()
-    mid = len(words) // 2
-    res = index.similarity_search(query_text=" ".join(words[mid:mid + 15]), columns=["chunk_id"],
+    query = distinctive_query(r.text, size=15, margin=CHUNK_OVERLAP_WORDS)
+    res = index.similarity_search(query_text=query, columns=["chunk_id"],
                                   num_results=5, query_type="hybrid", disable_notice=True)
     hits.append((r.chunk_id, [h["chunk_id"] for h in parse_search_result(res)]))
 

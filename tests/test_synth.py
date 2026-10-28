@@ -112,3 +112,15 @@ def test_prompt_versions():
     assert build_messages("P?", hits, "v1")[0]["content"] == PROMPTS["v1"]
     assert build_messages("P?", hits)[0]["content"] == PROMPTS[DEFAULT_PROMPT]
     assert "participou" in PROMPTS["v2"] and "Não encontrei isso nos trechos recuperados" in PROMPTS["v2"]
+
+
+def test_distinctive_query_prefers_names_away_from_edges():
+    from src.retrieval import distinctive_query
+    edge = " ".join(["Fëanor"] * 10)  # nomes na borda (overlap) não contam
+    common = " ".join(["os orcs seguiam pela estrada"] * 20)
+    names = "e Túrin encontrou Beleg na floresta de Brethil perto de Nargothrond com Gwindor"
+    text = "[CAPÍTULO XXI] " + edge + " " + common + " " + names + " " + common + " " + edge
+    q = distinctive_query(text, size=15, margin=12)
+    assert "Túrin" in q and "Nargothrond" in q and "Fëanor" not in q and "CAPÍTULO" not in q
+    short = distinctive_query("[X] uma frase curta demais", size=15, margin=60)
+    assert short == "uma frase curta demais"

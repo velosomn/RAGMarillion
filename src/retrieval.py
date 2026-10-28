@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import math
+import re
 import time
 
 # Versões do prompt da resposta. A avaliação (06) compara versões; a padrão é a mais recente.
@@ -65,6 +66,20 @@ def call_with_retries(fn, *args, tries: int = 4, wait_s: float = 20, sleep=time.
 
 def indexed_row_count(index) -> int | None:
     return index.describe().get("status", {}).get("indexed_row_count")
+
+
+def distinctive_query(text: str, size: int = 15, margin: int = 60) -> str:
+    """Trecho de `size` palavras do chunk para o teste de auto-recuperação: a janela com mais nomes
+    próprios, longe das bordas que o chunk divide com os vizinhos (o overlap). Uma frase comum
+    ("os orcs se demoravam na estrada") existe em dezenas de chunks e não serve de teste."""
+    words = re.sub(r"^\[[^\]]*\]\s*", "", text, count=1).split()  # sem o rótulo do capítulo
+    lo, hi = margin, len(words) - margin - size
+    if hi < lo:  # chunk curto: janela do meio
+        lo = hi = max((len(words) - size) // 2, 0)
+    center = (lo + hi) / 2
+    best = max(range(lo, hi + 1),
+               key=lambda i: (sum(w[:1].isupper() for w in words[i:i + size]), -abs(i - center)))
+    return " ".join(words[best:best + size])
 
 
 def parse_search_result(result: dict) -> list[dict]:
