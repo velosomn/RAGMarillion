@@ -220,7 +220,12 @@ python app/perguntar.py --trechos  # mostra também o começo dos trechos recupe
 python app/perguntar.py --completo # mostra os trechos recuperados inteiros
 python app/perguntar.py --prompt v1 "..."  # usa outra versão do prompt da resposta
 python app/perguntar.py --estrategia diversa "..."  # usa outra estratégia de busca
+python app/perguntar.py --lote data/eval_questions.jsonl  # responde todas e grava respostas_lote.md
 ```
+
+O `--lote` grava, para cada pergunta, a resposta esperada, a resposta do RAG, as fontes citadas e os
+ids recuperados, sem o texto dos trechos. O arquivo fica fora do Git; os exemplos comentados estão em
+[docs/exemplos.md](docs/exemplos.md).
 
 **Credenciais.** Crie um token em **Settings > Developer > Access tokens** no Databricks e configure
 **fora do repositório**, por variáveis de ambiente (`DATABRICKS_HOST` e `DATABRICKS_TOKEN`) ou pelo

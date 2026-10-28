@@ -20,3 +20,6 @@ __pycache__/
 .env
 .databrickscfg
 *token*.txt
+
+# Saída do app/perguntar.py --lote (respostas geradas; o documento público é curado à mão)
+respostas_lote*.md

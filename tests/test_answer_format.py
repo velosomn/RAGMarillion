@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from src.answer_format import cited_ids, excerpt, format_sources, page_label
+from src.answer_format import batch_entry, cited_ids, excerpt, format_sources, page_label
 
 
 def doc(cid, chapter, start, end=None, text="texto"):
@@ -34,6 +34,25 @@ def test_excerpt():
     assert excerpt("[CAPÍTULO VII] Naquela  época\nforam feitas") == "Naquela época foram feitas"
     long = excerpt("[X] " + "palavra " * 100, max_chars=30)
     assert long.endswith("…") and len(long) <= 31
+
+
+def test_batch_entry():
+    docs = [doc("c00078", "CAPÍTULO VII: DAS SILMARILS", 158, text="texto do livro"), doc("c00079", "X", 159)]
+    item = {"id": "q01", "category": "factual", "question": "Quem forjou as Silmarils?",
+            "expected_response": "Fëanor."}
+    md = batch_entry(item, "Fëanor [c00078].\n\nEm Tirion.", docs)
+    assert md.startswith("## q01 · Quem forjou as Silmarils?")
+    assert "**Esperada:** Fëanor." in md
+    assert "> Fëanor [c00078].\n>\n> Em Tirion." in md
+    assert "- [c00078] CAPÍTULO VII: DAS SILMARILS, p. 158" in md
+    assert "Recuperados: `c00078`, `c00079`" in md
+    assert "texto do livro" not in md
+
+
+def test_batch_entry_refusal_without_expected():
+    md = batch_entry({"question": "Pônei de Sam?"}, "Não encontrei isso nos trechos recuperados.", [])
+    assert "**Esperada:**" not in md
+    assert "- nenhuma citada" in md and "Recuperados: nenhum" in md
 
 
 def test_excerpt_full_text():

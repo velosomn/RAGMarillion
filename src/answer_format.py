@@ -34,6 +34,22 @@ def format_sources(answer: str, docs: list) -> list[str]:
     return lines
 
 
+def batch_entry(item: dict, answer: str, docs: list) -> str:
+    """Uma pergunta do lote em markdown: pergunta, resposta esperada, resposta, fontes citadas e
+    ids recuperados. Sem o texto dos trechos, que tem direitos autorais."""
+    lines = [f"## {item.get('id', '?')} · {item['question']}", ""]
+    if item.get("category"):
+        lines += [f"Categoria: {item['category']}", ""]
+    if item.get("expected_response"):
+        lines += [f"**Esperada:** {item['expected_response']}", ""]
+    quoted = [f"> {line}" if line.strip() else ">" for line in (answer or "").strip().splitlines()]
+    lines += ["**Resposta:**", ""] + (quoted or ["> (vazia)"]) + [""]
+    sources = format_sources(answer, docs)
+    lines += ["**Fontes:**", ""] + ([f"- {s}" for s in sources] or ["- nenhuma citada"]) + [""]
+    lines += ["Recuperados: " + (", ".join(f"`{d.id}`" for d in docs) or "nenhum"), ""]
+    return "\n".join(lines)
+
+
 def excerpt(text: str, max_chars: int | None = 300) -> str:
     """Começo do trecho (ou ele inteiro, com max_chars=None), sem o rótulo do capítulo e numa linha só."""
     body = " ".join(_PREFIX.sub("", text, count=1).split())
