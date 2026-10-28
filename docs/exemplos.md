@@ -8,6 +8,7 @@ Cada resposta aqui é uma saída real da aplicação de terminal (`app/perguntar
 
 - **Fontes:** os trechos que a resposta citou, pelo id (`c00212`), com o capítulo e as páginas do PDF.
 - **Veredito:** comparação com a resposta esperada do gabarito manual (`data/eval_questions.jsonl`), quando a pergunta está nele.
+- **Páginas:** são as do PDF usado no projeto, uma cópia digital de 1.020 páginas; não correspondem ao livro físico nem a outras edições ou cópias digitais.
 - **Sem texto do livro:** os trechos em si não aparecem, por direitos autorais; só a resposta gerada e onde ela se apoia.
 
 ## Perguntas do gabarito manual

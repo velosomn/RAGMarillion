@@ -10,7 +10,7 @@ Este documento descreve primeiro cada métrica e depois discute os resultados.
 
 O notebook 06 mede três coisas separadas: se a busca trouxe o trecho certo, se o sistema recusa quando o livro não tem a resposta e se a resposta final está boa. Todas vão de 0 a 1 e, salvo a recusa indevida, quanto maior, melhor. Cada uma é calculada por pergunta e depois tirada a média.
 
-**Busca pela página** (só nas perguntas com `evidence_pages`, as sintéticas e as manuais marcadas). Um trecho recuperado conta como relevante se cobre a página onde está a resposta. Como a página não depende do chunking, a mesma marcação serve para comparar qualquer configuração.
+**Busca pela página** (só nas perguntas com `evidence_pages`, as sintéticas e as manuais marcadas). Um trecho recuperado conta como relevante se cobre a página onde está a resposta. Como a página não depende do chunking, a mesma marcação serve para comparar qualquer configuração. As páginas são as do PDF usado no projeto, uma cópia digital de 1.020 páginas, e não correspondem ao livro físico nem a outras cópias.
 
 | Métrica (nome no MLflow) | O que mede | Como é calculada, por pergunta |
 | --- | --- | --- |

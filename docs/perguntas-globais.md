@@ -13,7 +13,7 @@ Perguntas sobre o livro como um todo ("do que se trata?", "quais são os princip
 
 ![A pergunta abstrata ficou no começo do livro; a concreta o percorreu todo](img/perguntas-globais.png)
 
-Cada linha é uma pergunta feita na aplicação (busca `hybrid_k5`, prompt v2), e cada círculo, um dos 5 trechos que a busca trouxe, na página em que ele começa. Círculo cheio: citado na resposta; vazio: recuperado, mas não usado.
+Cada linha é uma pergunta feita na aplicação (busca `hybrid_k5`, prompt v2), e cada círculo, um dos 5 trechos que a busca trouxe, na página em que ele começa (página do PDF usado no projeto, que não corresponde ao livro físico). Círculo cheio: citado na resposta; vazio: recuperado, mas não usado.
 
 | Pergunta | Resposta | Avaliação |
 | --- | --- | --- |

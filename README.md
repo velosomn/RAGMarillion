@@ -8,6 +8,13 @@ modelo usa o contexto ou a memória.
 > **Sobre o texto do livro:** O Silmarillion é protegido por direitos autorais. Este repositório
 > contém **apenas código**. O PDF, os chunks e as saídas dos notebooks não são versionados.
 > Para reproduzir, use a sua própria cópia do livro.
+>
+> **Sobre as páginas:** o projeto foi feito com uma cópia digital do livro, um PDF em português de
+> 1.020 páginas. Toda página citada aqui (nas fontes das respostas, no gabarito, nas métricas e nos
+> documentos) é a página **desse PDF**, contada a partir da primeira página do arquivo. Ela **não
+> corresponde** à numeração do livro físico nem à de outras edições ou cópias digitais; até o
+> glossário dentro do PDF usa outra numeração. Com outra cópia, as páginas e os ids dos trechos
+> mudam: é preciso regerar o gabarito sintético (06a) e conferir as `evidence_pages` do gabarito manual.
 
 **Andamento:** o que já foi feito e os próximos passos estão em [docs/progresso.md](docs/progresso.md); as métricas e os resultados da avaliação, em [docs/metricas.md](docs/metricas.md); o raciocínio por trás da avaliação, em [docs/discussao-avaliacao.md](docs/discussao-avaliacao.md); e o limite do RAG em perguntas gerais, em [docs/perguntas-globais.md](docs/perguntas-globais.md).
 

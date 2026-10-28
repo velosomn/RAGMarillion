@@ -6,7 +6,7 @@ Atualizado em 28/10/2026 · velosomn
 
 O RAGMarillion responde perguntas sobre O Silmarillion citando os trechos do livro, roda de ponta a ponta no livro inteiro (1.020 páginas, 529 chunks, 36 capítulos) e já tem uma avaliação com números: a busca híbrida acerta a página da resposta em 91% das perguntas e cerca de 80% das respostas estão corretas com o prompt v2. Dá para perguntar direto do terminal do computador. O teste contrafactual (07) ainda não rodou, e as estratégias de busca estão implementadas mas ainda não avaliadas.
 
-O repositório é público em [github.com/velosomn/RAGMarillion](https://github.com/velosomn/RAGMarillion) e contém só código. O PDF, os chunks e as saídas dos notebooks ficam no Databricks, por causa dos direitos autorais da obra.
+O repositório é público em [github.com/velosomn/RAGMarillion](https://github.com/velosomn/RAGMarillion) e contém só código. O PDF, os chunks e as saídas dos notebooks ficam no Databricks, por causa dos direitos autorais da obra. O projeto foi feito com uma cópia digital do livro, um PDF em português de 1.020 páginas: toda página citada nos documentos é a desse PDF e não corresponde ao livro físico nem a outras edições ou cópias digitais.
 
 | Peça | Escolha |
 | --- | --- |
