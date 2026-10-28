@@ -9,7 +9,7 @@ modelo usa o contexto ou a memória.
 > contém **apenas código**. O PDF, os chunks e as saídas dos notebooks não são versionados.
 > Para reproduzir, use a sua própria cópia do livro.
 
-**Andamento:** o que já foi feito e os próximos passos estão em [docs/progresso.md](docs/progresso.md); as métricas e os resultados da avaliação, em [docs/metricas.md](docs/metricas.md); e o raciocínio por trás da avaliação, em [docs/discussao-avaliacao.md](docs/discussao-avaliacao.md).
+**Andamento:** o que já foi feito e os próximos passos estão em [docs/progresso.md](docs/progresso.md); as métricas e os resultados da avaliação, em [docs/metricas.md](docs/metricas.md); o raciocínio por trás da avaliação, em [docs/discussao-avaliacao.md](docs/discussao-avaliacao.md); e o limite do RAG em perguntas gerais, em [docs/perguntas-globais.md](docs/perguntas-globais.md).
 
 ---
 

@@ -262,7 +262,7 @@ O próximo marco é comparar as estratégias de busca e medir as perguntas de v�
 - [ ] Melhorar o prompt do 06a para exigir uma única resposta no livro inteiro e descartar perguntas vagas; regerar e revisar.
 - [ ] Revisar a amostra de 30 perguntas sintéticas e registrar a taxa de erro do gabarito.
 - [ ] Ampliar a amostra dos juízes (60 hoje) para reduzir o ruído.
-- [ ] Rodar o 07 (contrafactual) no livro inteiro.
+- [ ] Rodar o 07 (contrafactual) no livro inteiro. Perguntas globais: categoria `global` no gabarito, métrica de cobertura e estratégia `reformulada` (veja [perguntas-globais.md](perguntas-globais.md)).
 - [ ] Revogar o token que ficou exposto na sessão de configuração da aplicação e manter o novo só nas variáveis de ambiente.
 
 **Em aberto**
@@ -271,4 +271,4 @@ O próximo marco é comparar as estratégias de busca e medir as perguntas de v�
 - Uma lista de correções de texto conhecidas ("eLivross" → "exilados", "entaIhadas" → "entalhadas"), conferida no PDF antes de aplicar.
 - O índice e as tabelas do modo de teste (`_teste`) podem ser apagados.
 
-A discussão sobre como avaliar a recuperação, o risco de overfitting e por que usar um RAG está em [discussao-avaliacao.md](discussao-avaliacao.md); as métricas e os resultados da avaliação, em [metricas.md](metricas.md).
+A discussão sobre como avaliar a recuperação, o risco de overfitting e por que usar um RAG está em [discussao-avaliacao.md](discussao-avaliacao.md); as métricas e os resultados da avaliação, em [metricas.md](metricas.md); e os achados sobre perguntas gerais ("do que se trata o livro?") e o limite do RAG por trechos, em [perguntas-globais.md](perguntas-globais.md).
