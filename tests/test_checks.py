@@ -147,3 +147,9 @@ def test_glued_words():
     assert n == 3 and examples == ["paraMinas", "aPedra", "eLivross"]
     assert not checks.glued_words(pages, 0.01).ok
     assert checks.glued_words([(1, "Fëanor e Fingolfin em Tirion")], 0.0).ok
+
+
+def test_index_text_matches():
+    assert checks.index_text_matches([("c1", "texto", "texto"), ("c2", "outro", "outro")]).ok
+    res = checks.index_text_matches([("c1", "texto novo", "texto velho"), ("c2", "x", None)])
+    assert not res.ok and "c1" in res.detail and "c2" in res.detail

@@ -55,9 +55,11 @@ index.wait_until_ready(verbose=True)
 
 # MAGIC %md
 # MAGIC ### Verificações
-# MAGIC 1. O índice tem o mesmo número de linhas que a tabela de chunks.
-# MAGIC 2. **Auto-recuperação:** buscar um trecho distintivo de um chunk (o de mais nomes próprios, longe das bordas que ele divide com os vizinhos) precisa devolver esse mesmo chunk.
-# MAGIC    Pega índice desatualizado (o texto mudou e o sync não terminou) ou modelo de embedding errado.
+# MAGIC 1. O índice tem o mesmo número de linhas que a tabela de chunks e, nos chunks sorteados, o mesmo texto
+# MAGIC    (a contagem não percebe quando só o texto mudou, como depois de uma limpeza nova).
+# MAGIC 2. **Auto-recuperação:** buscar 100 palavras de um chunk (longe das bordas que ele divide com os vizinhos)
+# MAGIC    precisa devolver esse mesmo chunk entre os 5 primeiros.
+# MAGIC A 1 pega índice desatualizado (o sync não terminou); a 2, busca quebrada ou modelo de embedding errado.
 
 # COMMAND ----------
 
@@ -68,15 +70,22 @@ wait_until(lambda: indexed_row_count(index) == n_chunks, timeout_s=SYNC_TIMEOUT_
 
 sample = (spark.table(CHUNKS_TABLE).orderBy(F.rand(seed=42)).limit(SMOKE_SAMPLES)
           .select("chunk_id", "text").collect())
-hits = []
+hits, texts = [], []
 for r in sample:
-    query = distinctive_query(r.text, size=15, margin=CHUNK_OVERLAP_WORDS)
+    # 100 palavras do próprio chunk, fora do overlap: só ele tem esse trecho inteiro
+    query = distinctive_query(r.text, size=100, margin=CHUNK_OVERLAP_WORDS)
     res = index.similarity_search(query_text=query, columns=["chunk_id"],
                                   num_results=5, query_type="hybrid", disable_notice=True)
     hits.append((r.chunk_id, [h["chunk_id"] for h in parse_search_result(res)]))
+    # o texto que o índice guarda para este chunk, para comparar com a tabela
+    res = index.similarity_search(query_text=query, columns=["chunk_id", "text"], filters={"chunk_id": [r.chunk_id]},
+                                  num_results=1, disable_notice=True)
+    found = parse_search_result(res)
+    texts.append((r.chunk_id, r.text, found[0]["text"] if found else None))
 
 rep = checks.Report("04 · Índice")
 rep.add("Linhas no índice", checks.index_rows(indexed_row_count(index), n_chunks))
+rep.add("Texto do índice atualizado", checks.index_text_matches(texts))
 rep.add("Auto-recuperação", checks.self_retrieval(hits))
 rep.finish()
 

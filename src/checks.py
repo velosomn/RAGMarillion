@@ -246,6 +246,16 @@ def index_rows(indexed: int | None, expected: int) -> Result:
     return Result(indexed == expected, f"{indexed} linhas no índice; {expected} na tabela de chunks")
 
 
+def index_text_matches(samples: list[tuple[str, str, str | None]]) -> Result:
+    """`samples` = [(chunk_id, texto na tabela, texto no índice ou None)]. Texto diferente =
+    índice desatualizado: a contagem de linhas não percebe quando só o texto dos chunks mudou."""
+    stale = [cid for cid, table_text, index_text in samples if index_text != table_text]
+    if not stale:
+        return Result(True, f"{len(samples)}/{len(samples)} chunks com o mesmo texto na tabela e no índice")
+    return Result(False, f"texto diferente ou ausente no índice: {stale}. A sincronização não terminou: "
+                         f"rode index.sync(), espere alguns minutos e rode esta célula de novo")
+
+
 def self_retrieval(hits: list[tuple[str, list[str]]]) -> Result:
     """`hits` = [(chunk_id buscado pelo próprio texto, ids recuperados)]. Pelo menos metade
     precisa voltar no top-k."""
