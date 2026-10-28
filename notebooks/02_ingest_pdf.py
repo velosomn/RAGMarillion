@@ -18,7 +18,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install -q pypdf
+# MAGIC %pip install -q pypdf pymupdf
 # MAGIC %restart_python
 
 # COMMAND ----------
@@ -41,8 +41,31 @@ if not os.path.exists(PDF_PATH):
         f"Suba o PDF ou ajuste PDF_FILENAME no 00_config."
     )
 
+# Extrator do texto. Cada um junta e separa palavras de um jeito; a célula "Comparar extratores",
+# mais abaixo, mede qual deixa menos palavras grudadas no seu PDF.
+#   "pypdf"        → o padrão até aqui
+#   "pypdf_layout" → pypdf respeitando a posição do texto na página
+#   "pymupdf"      → outra biblioteca (PyMuPDF), em geral melhor em espaçamento
+PDF_EXTRACTOR = "pypdf"
+
 reader = PdfReader(PDF_PATH)
 n_total = len(reader.pages)
+_mupdf = None
+
+
+def extract_page(n: int, mode: str) -> str:
+    """Texto cru da página n (1 = primeira) com o extrator `mode`."""
+    global _mupdf
+    if mode == "pymupdf":
+        if _mupdf is None:
+            import pymupdf
+            _mupdf = pymupdf.open(PDF_PATH)
+        return _mupdf[n - 1].get_text("text") or ""
+    if mode == "pypdf_layout":
+        return reader.pages[n - 1].extract_text(extraction_mode="layout") or ""
+    return reader.pages[n - 1].extract_text() or ""
+
+
 if PAGE_RANGE:
     start, end = PAGE_RANGE
     if not 1 <= start <= end <= n_total:
@@ -51,8 +74,8 @@ if PAGE_RANGE:
 else:
     page_numbers = range(1, n_total + 1)
 
-raw_pages = [(n, reader.pages[n - 1].extract_text() or "") for n in page_numbers]
-print(f"{len(raw_pages)} de {n_total} páginas lidas")
+raw_pages = [(n, extract_page(n, PDF_EXTRACTOR)) for n in page_numbers]
+print(f"{len(raw_pages)} de {n_total} páginas lidas com {PDF_EXTRACTOR}")
 
 # COMMAND ----------
 
@@ -70,6 +93,27 @@ DROP_LINE_PATTERNS = [
 ]
 
 pages = [(n, clean_page(t, DROP_LINE_PATTERNS)) for n, t in raw_pages]
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ### Comparar extratores
+# MAGIC Extrai as mesmas páginas com os três extratores e conta palavras grudadas ("paraMinas", "aPedra").
+# MAGIC Quanto menos grudadas, com o total de palavras parecido, melhor. Escolha o vencedor em
+# MAGIC `PDF_EXTRACTOR` e rode o notebook de novo. Mostra só contagens e algumas palavras grudadas.
+
+# COMMAND ----------
+
+import pandas as pd
+
+amostra = list(page_numbers)[:: max(len(page_numbers) // 60, 1)][:60]  # ~60 páginas espalhadas
+comparacao = []
+for mode in ["pypdf", "pypdf_layout", "pymupdf"]:
+    sample_pages = [(n, clean_page(extract_page(n, mode), DROP_LINE_PATTERNS)) for n in amostra]
+    glued, examples = checks.count_glued(sample_pages)
+    comparacao.append({"extrator": mode, "páginas": len(sample_pages), "palavras": checks.count_words(sample_pages),
+                       "grudadas": glued, "exemplos": ", ".join(examples[:4])})
+display(pd.DataFrame(comparacao))
 
 # COMMAND ----------
 
@@ -112,6 +156,7 @@ else:
     rep.add("Total de palavras", checks.total_words(pages, MIN_TOTAL_WORDS))
 rep.add("Termos-âncora", checks.anchor_terms(pages, ANCHOR_TERMS, MIN_ANCHOR_FRAC), level=BOOK_LEVEL)
 rep.add("Caracteres corrompidos", checks.bad_chars(pages, MAX_BAD_CHAR_FRAC), level="AVISO")
+rep.add("Palavras grudadas (estimativa)", checks.glued_words(pages), level="AVISO")
 rep.add("Linhas repetidas (cabeçalho/rodapé)", checks.repeated_lines(pages, REPEATED_LINE_MIN_FRAC), level="AVISO")
 # Títulos: só AVISO aqui, porque a tabela de páginas não depende do regex. O 03 cobra como ERRO.
 if CHAPTER_REGEX is None:

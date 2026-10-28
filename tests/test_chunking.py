@@ -152,3 +152,10 @@ def test_parse_search_result():
     }
     assert parse_search_result(res) == [{"chunk_id": "c00001", "text": "abc", "score": 0.9}]
     assert parse_search_result({"manifest": {"columns": []}, "result": {}}) == []
+
+
+def test_clean_page_joins_hyphen_breaks_with_spaces_and_soft_hyphens():
+    assert clean_page("o nome Ercha- \n  mion") == "o nome Erchamion"
+    assert clean_page("o nome Ercha\u2010\nmion") == "o nome Erchamion"
+    assert clean_page("Ercha\u00admion") == "Erchamion"
+    assert clean_page("Terra-média continua") == "Terra-média continua"  # hífen no meio da linha fica

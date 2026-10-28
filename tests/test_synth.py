@@ -103,3 +103,12 @@ def test_call_with_retries():
         assert False, "deveria ter levantado"
     except RuntimeError as e:
         assert "fora do ar" in str(e)
+
+
+def test_prompt_versions():
+    from src.retrieval import DEFAULT_PROMPT, PROMPTS, build_messages
+    assert DEFAULT_PROMPT in PROMPTS and {"v1", "v2"} <= set(PROMPTS)
+    hits = [{"chunk_id": "c00001", "chapter": "Cap", "page_start": 1, "text": "t"}]
+    assert build_messages("P?", hits, "v1")[0]["content"] == PROMPTS["v1"]
+    assert build_messages("P?", hits)[0]["content"] == PROMPTS[DEFAULT_PROMPT]
+    assert "participou" in PROMPTS["v2"] and "Não encontrei isso nos trechos recuperados" in PROMPTS["v2"]

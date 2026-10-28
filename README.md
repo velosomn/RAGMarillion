@@ -109,6 +109,10 @@ Extrai o texto com `pypdf`. Antes de seguir, use as células de inspeção para:
 
 Se muitas páginas vierem sem texto, o PDF é escaneado e precisa de OCR antes.
 
+O extrator do texto é escolhido em `PDF_EXTRACTOR` (`pypdf`, `pypdf_layout` ou `pymupdf`). A célula
+"Comparar extratores" conta as palavras grudadas ("paraMinas") que cada um deixa numa amostra de
+páginas; use o que deixar menos.
+
 ### 8. Chunking (`03_chunking`)
 Chunks de ~350 palavras com 60 de overlap, sem atravessar capítulos, com o título do capítulo
 injetado no texto (`PREPEND_CHAPTER`). Os títulos são detectados linha a linha; um título igual ao
@@ -142,6 +146,8 @@ respondendo de memória) e registra no MLflow:
   `EVAL_JUDGE_SAMPLE` perguntas.
 
 Compare configurações com `EVAL_SPLIT = "dev"` e use `"test"` uma vez só, para confirmar a escolhida.
+Cada configuração em `CONFIGS` também escolhe a versão do prompt da resposta (`PROMPTS` em
+`src/retrieval.py`), para medir uma mudança de prompt do mesmo jeito que uma mudança de busca.
 Se os juízes padrão não estiverem disponíveis no Free Edition, defina `JUDGE_MODEL` no `00_config`
 com um endpoint do workspace. O raciocínio por trás dessa avaliação está em
 [docs/discussao-avaliacao.md](docs/discussao-avaliacao.md).
@@ -200,7 +206,9 @@ mostra a resposta com as fontes citadas, capítulo e página.
 pip install -r requirements-app.txt
 python app/perguntar.py "Quem forjou as Silmarils?"
 python app/perguntar.py            # modo interativo: Enter vazio ou 'sair' encerra
-python app/perguntar.py --trechos  # mostra também os trechos recuperados
+python app/perguntar.py --trechos  # mostra também o começo dos trechos recuperados
+python app/perguntar.py --completo # mostra os trechos recuperados inteiros
+python app/perguntar.py --prompt v1 "..."  # usa outra versão do prompt da resposta
 ```
 
 **Credenciais.** Crie um token em **Settings > Developer > Access tokens** no Databricks e configure

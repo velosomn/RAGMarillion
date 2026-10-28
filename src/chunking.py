@@ -27,7 +27,9 @@ class Chunk:
         return asdict(self)
 
 
-_HYPHEN_BREAK = re.compile(r"(\w)-\n(\w)")
+# Palavra partida no fim da linha: hífen comum ou tipográfico, com espaços soltos em volta da quebra
+_HYPHEN_BREAK = re.compile(r"(\w)[-‐‑][ \t]*\n[ \t]*(\w)")
+_SOFT_HYPHEN = "­"  # hífen invisível que alguns PDFs deixam no meio das palavras
 _MULTI_SPACE = re.compile(r"[ \t]+")
 # Ligaduras tipográficas do PDF (ﬁ, ﬂ...): na tela parecem "fi", mas para a busca
 # "ﬁlhos" e "filhos" seriam palavras diferentes.
@@ -39,7 +41,7 @@ def clean_page(text: str, drop_line_patterns: list[str] | None = None) -> str:
     espaços repetidos e linhas de ruído (cabeçalho corrente, número de página)."""
     if not text:
         return ""
-    text = unicodedata.normalize("NFC", text).translate(_LIGATURES)
+    text = unicodedata.normalize("NFC", text).translate(_LIGATURES).replace(_SOFT_HYPHEN, "")
     text = _HYPHEN_BREAK.sub(r"\1\2", text)
     patterns = [re.compile(p) for p in (drop_line_patterns or [r"^\s*\d{1,4}\s*$"])]
     lines = []

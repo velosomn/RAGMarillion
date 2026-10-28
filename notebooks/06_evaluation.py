@@ -36,7 +36,7 @@ from databricks.ai_search.client import AISearchClient
 from mlflow.genai.scorers import Correctness, RetrievalGroundedness, RetrievalSufficiency
 from src import checks
 from src.rag import ClosedBookLLM, RAGMarillion
-from src.retrieval import call_with_retries, hit_at_k, page_scores, reciprocal_rank
+from src.retrieval import DEFAULT_PROMPT, call_with_retries, hit_at_k, page_scores, reciprocal_rank
 from src.synth import split_for
 
 mlflow.set_experiment(MLFLOW_EXPERIMENT)
@@ -45,7 +45,9 @@ index = AISearchClient(disable_notice=True).get_index(VS_ENDPOINT, VS_INDEX)
 with open(os.path.abspath(EVAL_FILE), encoding="utf-8") as f:
     manual = [json.loads(line) for line in f if line.strip()]
 for e in manual:
-    e["split"] = split_for(e["id"])
+    # Divisão fixa por id; uma pergunta criada a partir de um caso que estamos analisando
+    # declara "split": "dev" no gabarito, porque o teste só pode ter perguntas que não guiaram decisões.
+    e.setdefault("split", split_for(e["id"]))
 
 synthetic = []
 if spark.catalog.tableExists(SYNTH_TABLE):
@@ -99,8 +101,16 @@ if TEST_MODE:
     rep.add("Perguntas respondíveis no trecho",
             checks.Result(n_answerable > 0, f"{n_answerable} sobraram; escolha um PAGE_RANGE maior se for zero"))
 else:
-    rep.add("Perguntas com algum termo no texto",
-            checks.Result(not unreachable, f"sem nenhum termo esperado no texto: {unreachable or 'nenhuma'}"))
+    # Sintéticas cujo termo sumiu do texto (ex.: depois de uma limpeza nova) saem da avaliação;
+    # no gabarito manual, termo ausente é erro do gabarito e para tudo.
+    synth_gone = [q for q in unreachable if q.startswith("s")]
+    manual_gone = [q for q in unreachable if not q.startswith("s")]
+    eval_set = [e for e in eval_set if e["id"] not in synth_gone]
+    rep.add("Perguntas manuais com algum termo no texto",
+            checks.Result(not manual_gone, f"sem nenhum termo esperado no texto: {manual_gone or 'nenhuma'}"))
+    rep.add("Perguntas sintéticas com algum termo no texto", checks.Result(
+        not synth_gone, f"{len(synth_gone)} deixadas de fora (o texto mudou desde a geração): {synth_gone}"
+        if synth_gone else "todas"), level="AVISO")
     rep.add("Termos esperados no texto", checks.absent_terms(missing), level="AVISO")
 
 if EVAL_JUDGE_SAMPLE:
@@ -171,8 +181,8 @@ def resilient(fn, failures: list):
     return predict
 
 
-def run_config(name: str, top_k: int, query_type: str):
-    rag = RAGMarillion(index, LLM_ENDPOINT, top_k=top_k, query_type=query_type)
+def run_config(name: str, top_k: int, query_type: str, prompt: str = DEFAULT_PROMPT):
+    rag = RAGMarillion(index, LLM_ENDPOINT, top_k=top_k, query_type=query_type, prompt_version=prompt)
     rows, failures = [], []
     with mlflow.start_run(run_name=name):
         mlflow.set_tags({**MODE_TAGS, "split": EVAL_SPLIT, "tipo": "rag"})
@@ -180,6 +190,7 @@ def run_config(name: str, top_k: int, query_type: str):
             "top_k": top_k, "query_type": query_type, "embedding": EMBEDDING_ENDPOINT,
             "llm": LLM_ENDPOINT, "chunk_size": CHUNK_SIZE_WORDS, "overlap": CHUNK_OVERLAP_WORDS,
             "prepend_chapter": PREPEND_CHAPTER, "n_questions": len(eval_set), "n_judged": len(sample),
+            "prompt_version": prompt,
         })
 
         # 1) Recuperação e recusa: todas as perguntas, sem juiz
@@ -224,21 +235,21 @@ def run_closed_book():
 
 # COMMAND ----------
 
-# Ablação mínima + linha de base sem contexto.
-# Para repetir só algumas, comente as linhas que não quiser rodar.
+# Configurações a comparar: (nome, trechos, busca, versão do prompt em src/retrieval.py).
+# Agora: o prompt v1 contra o v2 na configuração escolhida. A ablação da busca já rodou:
+#   ("ann_k3", 3, "ann", "v1"), ("ann_k5", 5, "ann", "v1"), ("hybrid_k5", 5, "hybrid", "v1")
 CONFIGS = [
-    ("ann_k3", 3, "ann"),
-    ("ann_k5", 5, "ann"),
-    ("hybrid_k5", 5, "hybrid"),
+    ("hybrid_k5_v1", 5, "hybrid", "v1"),
+    ("hybrid_k5_v2", 5, "hybrid", "v2"),
 ]
-RUN_CLOSED_BOOK = True
+RUN_CLOSED_BOOK = False  # a linha de base sem contexto não depende do prompt; já foi medida
 EVAL_PAUSE_S = 60   # pausa entre configurações, para não estourar o limite de chamadas do Free Edition
 
 results = {}
-for i, (name, k, qt) in enumerate(CONFIGS):
+for i, (name, k, qt, prompt) in enumerate(CONFIGS):
     if i:
         time.sleep(EVAL_PAUSE_S)
-    results[name] = run_config(name, k, qt)
+    results[name] = run_config(name, k, qt, prompt)
 closed_book = {}
 if RUN_CLOSED_BOOK and sample:
     if CONFIGS:

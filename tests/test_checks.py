@@ -139,3 +139,11 @@ def test_expected_terms_in_corpus():
     assert missing == {"q1": ["Silmarilli"], "q2": ["Gondolin"]}
     assert checks.unreachable_questions(eval_set, missing) == ["q2"]
     assert not checks.absent_terms(missing).ok
+
+
+def test_glued_words():
+    pages = [(1, "foram paraMinas Ithil e aPedra-mestra; os eLivross de Númenor"), (2, "Fëanor e Fingolfin em Tirion")]
+    n, examples = checks.count_glued(pages)
+    assert n == 3 and examples == ["paraMinas", "aPedra", "eLivross"]
+    assert not checks.glued_words(pages, 0.01).ok
+    assert checks.glued_words([(1, "Fëanor e Fingolfin em Tirion")], 0.0).ok

@@ -5,7 +5,7 @@ import mlflow
 from mlflow.entities import Document, SpanType
 from mlflow.deployments import get_deploy_client
 
-from src.retrieval import build_messages, parse_search_result
+from src.retrieval import DEFAULT_PROMPT, build_messages, parse_search_result
 
 COLUMNS = ["chunk_id", "chapter", "page_start", "page_end", "text"]
 
@@ -15,13 +15,14 @@ Responda em português, de forma concisa."""
 
 class RAGMarillion:
     def __init__(self, index, llm_endpoint: str, top_k: int = 5, query_type: str = "hybrid",
-                 temperature: float = 0.0, max_tokens: int = 500):
+                 temperature: float = 0.0, max_tokens: int = 500, prompt_version: str = DEFAULT_PROMPT):
         self.index = index
         self.llm_endpoint = llm_endpoint
         self.top_k = top_k
         self.query_type = query_type
         self.temperature = temperature
         self.max_tokens = max_tokens
+        self.prompt_version = prompt_version
         self.client = get_deploy_client("databricks")
         self.last_docs: list[Document] = []  # chunks usados na última chamada de answer()
 
@@ -51,7 +52,7 @@ class RAGMarillion:
         resp = self.client.predict(
             endpoint=self.llm_endpoint,
             inputs={
-                "messages": build_messages(question, hits),
+                "messages": build_messages(question, hits, self.prompt_version),
                 "temperature": self.temperature,
                 "max_tokens": self.max_tokens,
             },

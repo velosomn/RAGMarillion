@@ -13,7 +13,8 @@ from dataclasses import dataclass
 from src.chunking import FRONT_MATTER, MAX_HEADING_WORDS, Chunk, iter_blocks, normalize_title
 
 LEVELS = ("ERRO", "AVISO")
-EVAL_CATEGORIES = ("factual", "aliases", "similar_names", "multi_hop", "unanswerable", "sintetica")
+EVAL_CATEGORIES = ("factual", "aliases", "similar_names", "multi_hop", "unanswerable", "sintetica",
+                   "consistencia")
 
 
 @dataclass
@@ -109,6 +110,26 @@ def bad_chars(pages: list[tuple[int, str]], max_frac: float) -> Result:
         detail += "; tipos: " + ", ".join(f"'{c}' (U+{ord(c):04X}) ×{n}" for c, n in kinds.most_common())
         examples = [blob[max(m.start() - 15, 0):m.end() + 15].replace("\n", " ") for m in matches[:3]]
         detail += "; exemplos: " + " | ".join(repr(e) for e in examples)
+    return Result(frac <= max_frac, detail)
+
+
+# Palavras grudadas na extração: minúsculas seguidas de um nome com maiúscula ("paraMinas", "aPedra").
+# Junções só de minúsculas ("emseus") não dão para detectar sem dicionário: a contagem é uma estimativa.
+_GLUED = re.compile(r"\b[a-zà-öø-ÿ]+[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ]{2,}")
+
+
+def count_glued(pages: list[tuple[int, str]]) -> tuple[int, list[str]]:
+    """Quantas palavras grudadas e alguns exemplos distintos."""
+    found = [m.group() for _, t in pages for m in _GLUED.finditer(t)]
+    return len(found), list(dict.fromkeys(found))[:8]
+
+
+def glued_words(pages: list[tuple[int, str]], max_frac: float = 0.001) -> Result:
+    n, examples = count_glued(pages)
+    frac = n / max(count_words(pages), 1)
+    detail = f"{n} palavras grudadas ({frac:.3%} das palavras); limite {max_frac:.1%}"
+    if examples:
+        detail += f"; ex.: {examples}"
     return Result(frac <= max_frac, detail)
 
 

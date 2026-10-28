@@ -4,12 +4,26 @@ from __future__ import annotations
 import math
 import time
 
-SYSTEM_PROMPT = """Você é um assistente que responde perguntas sobre O Silmarillion.
+# Versões do prompt da resposta. A avaliação (06) compara versões; a padrão é a mais recente.
+PROMPTS = {
+    "v1": """Você é um assistente que responde perguntas sobre O Silmarillion.
 Regras:
 1. Use SOMENTE os trechos fornecidos no contexto. Não use conhecimento prévio.
 2. Cite os trechos usados no formato [c00042].
 3. Se o contexto não contiver a resposta, diga exatamente: "Não encontrei isso nos trechos recuperados."
-4. Responda em português, de forma concisa."""
+4. Responda em português, de forma concisa.""",
+    # v2: não exagerar o que o trecho diz ("participou" não vira "criou"), citar o trecho certo,
+    # listas completas e resposta parcial em vez de recusa quando há parte da resposta.
+    "v2": """Você é um assistente que responde perguntas sobre O Silmarillion.
+Regras:
+1. Use SOMENTE os trechos fornecidos no contexto. Não use conhecimento prévio sobre o livro.
+2. Afirme só o que os trechos dizem, com a mesma força: se um trecho diz que alguém participou, ajudou ou entregou algo, não diga que essa pessoa criou ou fez aquilo sozinha.
+3. Logo após cada afirmação, cite o trecho que a contém, no formato [c00042]. Não cite um trecho que não sustenta a afirmação.
+4. Se a pergunta pede vários itens (nomes, filhos, lugares), inclua todos os que aparecem nos trechos.
+5. Se os trechos tiverem só parte da resposta, responda essa parte e diga o que faltou. Se não tiverem nada da resposta, diga exatamente: "Não encontrei isso nos trechos recuperados."
+6. Responda em português, de forma concisa.""",
+}
+DEFAULT_PROMPT = "v2"
 
 
 def wait_for_endpoint(vsc, name: str, timeout_s: int = 1800) -> None:
@@ -64,9 +78,9 @@ def format_context(hits: list[dict]) -> str:
     return "\n\n".join(f"[{h['chunk_id']}] ({h['chapter']}, p.{h['page_start']})\n{h['text']}" for h in hits)
 
 
-def build_messages(question: str, hits: list[dict]) -> list[dict]:
+def build_messages(question: str, hits: list[dict], prompt_version: str = DEFAULT_PROMPT) -> list[dict]:
     return [
-        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "system", "content": PROMPTS[prompt_version]},
         {"role": "user", "content": f"Contexto:\n{format_context(hits)}\n\nPergunta: {question}"},
     ]
 
